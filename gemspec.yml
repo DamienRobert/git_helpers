@@ -1,0 +1,14 @@
+name: git_helpers
+summary: "TODO: Summary"
+description: "TODO: Description"
+license: MIT
+authors: Damien Robert
+email: Damien.Olivier.Robert+gems@gmail.com
+homepage: https://github.com/DamienRobert/git_helpers#readme
+
+development_dependencies:
+  bundler: ~> 1.10
+  minitest: ~> 5.0
+  rake: ~> 10.0
+  rubygems-tasks: ~> 0.2
+  yard: ~> 0.8
