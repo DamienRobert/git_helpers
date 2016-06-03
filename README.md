@@ -24,6 +24,6 @@ TODO: Description
 
 ## Copyright
 
-Copyright (c) 2016 Damien Robert
+Copyright © 2016 Damien Robert
 
 MIT License. See LICENSE.txt for details.
