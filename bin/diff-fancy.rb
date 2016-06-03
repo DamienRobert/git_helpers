@@ -655,7 +655,7 @@ if __FILE__ == $0
 	@opts[:pager]=false unless Module.const_defined?('ShellHelpers')
 	@opts[:pager] && ShellHelpers.run_pager
 
-	diff_highlight="#{File.dirname(__FILE__)}/contrib/diff-highlight"
+	diff_highlight=ENV['DIFF_HIGHLIGHT']||"#{File.dirname(__FILE__)}/contrib/diff-highlight"
 
 	args=ARGF
 	if @opts[:debug]
