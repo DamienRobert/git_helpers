@@ -1,11 +1,15 @@
 name: git_helpers
-summary: "TODO: Summary"
-description: "TODO: Description"
+summary: "Git helpers utilities"
+description: "Add status line 'gitstatus.rb' and diff enhancement 'diff-fancy.rb'"
 license: MIT
 authors: Damien Robert
 email: Damien.Olivier.Robert+gems@gmail.com
 homepage: https://github.com/DamienRobert/git_helpers#readme
 
+dependencies:
+  shell_helpers: ~> 0.1
+  drain: ~> 0.1
+  simple_color: ~> 0.2
 development_dependencies:
   bundler: ~> 1.10
   minitest: ~> 5.0
