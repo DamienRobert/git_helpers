@@ -590,7 +590,7 @@ class GitFancyDiff < GitDiff
 	def clean_hunk_col
 		if @opts[:color] && @mode==:hunk && !@start_mode && @hunk[:n]==2
 			bcolor,ecolor,line=SimpleColor.current_colors(@orig_line)
-			m=line.match(/^([+-])?(.*)/)
+			m=line.scrub.match(/^([+-])?(.*)/)
 			mode=m[1]
 			cline=m[2]
 			if mode && cline !~ /[^[:space:]]/ #detect blank line
