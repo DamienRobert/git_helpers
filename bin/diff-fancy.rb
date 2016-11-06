@@ -476,7 +476,9 @@ class GitFancyDiff < GitDiff
 		super
 		#when run inside a pager I get one more column so the line overflow
 		#I don't know why
-		@cols=`tput cols`.to_i-1
+		cols=`tput cols`.to_i
+		cols==0 && cols=80 #if TERM is not defined `tput cols` returns ''
+		@cols=cols-1
 	end
 
 	def hline
