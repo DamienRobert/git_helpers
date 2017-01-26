@@ -248,3 +248,7 @@ diff --git 1/2/umount 2/2/umount
 new file mode 100755
 index 0000000..bb9ce29
 Binary files /dev/null and 2/2/umount differ
+diff --git 1/2/umount 2/2/umount
+deleted file mode 100755
+index bb9ce29..0000000
+Binary files 1/2/umount and /dev/null differ

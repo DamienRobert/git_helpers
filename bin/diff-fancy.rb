@@ -616,7 +616,8 @@ class GitFancyDiff < GitDiff
 	end
 
 	def binary_file_differ
-		@file && @file[:mode]==:new && @line =~ %r{^Binary files /dev/null and .* differ$}
+		@file and (@file[:mode]==:new && @line =~ %r{^Binary files /dev/null and ./#{@file[:name]} differ$} or
+							 @file[:mode]==:delete && @line =~ %r{^Binary files ./#{@file[:old_name]} and /dev/null differ$})
 	end
 
 	def handle_line
