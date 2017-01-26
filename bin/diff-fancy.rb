@@ -615,18 +615,23 @@ class GitFancyDiff < GitDiff
 		end
 	end
 
+	def binary_file_differ
+		@file && @file[:mode]==:new && @line =~ %r{^Binary files /dev/null and .* differ$}
+	end
+
 	def handle_line
 		super
 		#:diff_header and submodule_header are handled at end_*
 		case @mode
 		when :meta
-			output_line @orig_line
+			if binary_file_differ
+			else output_line @orig_line
+			end
 		when :hunk
 			if hunk_header
 			elsif nonewline_clean
 			elsif clean_hunk_col
-			else
-				output_line @orig_line
+			else output_line @orig_line
 			end
 		when :submodule,:commit
 			output_line @orig_line
