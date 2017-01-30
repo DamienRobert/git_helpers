@@ -67,8 +67,12 @@ module GitStatus
 			if @path.nil? then
 				yield(*args)
 			else
-				Dir.chdir(@path) do
-					yield(*args)
+				if File.directory?(@path)
+					Dir.chdir(@path) do
+						yield(*args)
+					end
+				else
+					warn "#{@path} is not a directory"
 				end
 			end
 		end
