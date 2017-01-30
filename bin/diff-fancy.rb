@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 #Inspired by diff-so-fancy; wrapper around diff-highlight
 #https://github.com/stevemao/diff-so-fancy (0ea7c129420c57ec0384a704325e27c41f8f450d)
-#TODO: use git-config, handle binary files
+#TODO: use git-config
 
 require "simplecolor"
 SimpleColor.mix_in_string
