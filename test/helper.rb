@@ -1,9 +1,13 @@
-require 'rubygems'
+require 'minitest/autorun'
+
+## Uncomment to launch pry on a failure
+#require 'pry-rescue/minitest'
 
 begin
-  require 'bundler/setup'
+  require 'minitest/reporters'
+  Minitest::Reporters.use! Minitest::Reporters::DefaultReporter.new
+  #Minitest::Reporters.use! Minitest::Reporters::SpecReporter.new
+  #Minitest::Reporters.use! Minitest::Reporters::ProgressReporter.new
 rescue LoadError => error
-  abort error.message
+  warn "minitest/reporters not found, not changing minitest reporter: #{error}"
 end
-
-require 'minitest/autorun'

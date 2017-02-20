@@ -1,10 +1,11 @@
 # git_helpers
 
 * [Homepage](https://github.com/DamienRobert/git_helpers#readme)
-* [Gems]("https://rubygems.org/gems/git_helpers)
 * [Issues](https://github.com/DamienRobert/git_helpers/issues)
-* [Documentation](http://rubydoc.info/gems/git_helpers/frames)
+* [Documentation](http://rubydoc.info/gems/git_helpers)
 * [Email](mailto:Damien.Olivier.Robert+gems at gmail.com)
+
+[![Gem Version](https://img.shields.io/gem/v/git_helpers.svg)](https://rubygems.org/gems/git_helpers)
 
 ## Description
 
@@ -35,4 +36,4 @@ Here is my .gitconfig using diff-fancy.rb:
 
 Copyright © 2016–2017 Damien Robert
 
-MIT License. See LICENSE.txt for details.
+MIT License. See [LICENSE.txt](./LICENSE.txt) for details.
