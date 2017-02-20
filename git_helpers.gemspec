@@ -24,6 +24,16 @@ Gem::Specification.new do |gem|
   glob = lambda { |patterns| gem.files & Dir[*patterns] }
 
   gem.files = `git ls-files`.split($/)
+
+  `git submodule --quiet foreach --recursive pwd`.split($/).each do |submodule|
+    submodule.sub!("#{Dir.pwd}/",'')
+
+    Dir.chdir(submodule) do
+      `git ls-files`.split($/).map do |subpath|
+        gem.files << File.join(submodule,subpath)
+      end
+    end
+  end
   gem.files = glob[gemspec['files']] if gemspec['files']
 
   gem.executables = gemspec.fetch('executables') do
@@ -56,4 +66,6 @@ Gem::Specification.new do |gem|
       gem.add_development_dependency(name,split[versions])
     end
   end
+
+  gem.metadata['yard.run']='yri'
 end
