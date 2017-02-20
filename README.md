@@ -6,6 +6,7 @@
 * [Email](mailto:Damien.Olivier.Robert+gems at gmail.com)
 
 [![Gem Version](https://img.shields.io/gem/v/git_helpers.svg)](https://rubygems.org/gems/git_helpers)
+[![Build Status](https://travis-ci.org/DamienRobert/git_helpers.svg?branch=master)](https://travis-ci.org/DamienRobert/git_helpers)
 
 ## Description
 
