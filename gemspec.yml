@@ -9,7 +9,7 @@ homepage: https://github.com/DamienRobert/git_helpers#readme
 dependencies:
   shell_helpers: ~> 0.1
   drain: ~> 0.1
-  simple_color: ~> 0.2
+  simplecolor: ~> 0.2
 development_dependencies:
   bundler: "~> 1.10"
   minitest: "~> 5.0"
