@@ -11,7 +11,13 @@ rescue LoadError
 end
 
 class GitDiff
-	def self.output(gdiff)
+	def self.output(gdiff, **opts)
+		if gdiff.respond_to?(:each_line)
+			enum=gdiff.each_line
+		else
+			enum=gdiff.each
+		end
+		self.new(enum, **opts).output
 	end
 
 	attr_reader :output
@@ -19,7 +25,7 @@ class GitDiff
 	NoNewLine="\\ No newline at end of file\n"
 
 	def initialize(diff,**opts)
-		@diff=diff #Assume diff is a line iterator [diff.each_line.to_a]
+		@diff=diff #Assume diff is a line iterator ['gitdiff'.each_line]
 		@current=0
 		@mode=:unknown
 		@opts=opts
