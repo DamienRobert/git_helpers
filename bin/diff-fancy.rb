@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
 #Inspired by diff-so-fancy; wrapper around diff-highlight
-#https://github.com/stevemao/diff-so-fancy (0ea7c129420c57ec0384a704325e27c41f8f450d)
+#https://github.com/stevemao/diff-so-fancy
+#- Commit version when I started the script: 0ea7c129420c57ec0384a704325e27c41f8f450d
+#- Last commit version I checked: 3adf0114da99643ec53a16253a3d6f42390e4c19 (2017-04-04)
 #TODO: use git-config
+#TODO: work with 'git log -p --graph'
 
 require "simplecolor"
 SimpleColor.mix_in_string

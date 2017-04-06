@@ -13,6 +13,21 @@
 - diff-fancy.rb: like [diff so fancy](https://github.com/so-fancy/diff-so-fancy) but in ruby and with more features
 - gitsatus.rb: lie [zsh git prompt](https://github.com/olivierverdier/zsh-git-prompt) but in ruby and with more features too!
 
+## Diff Fancy
+
+The output is very similar to diff-fancy.rb. With the following
+differences:
+- diff-fancy.rb implement a parser of git diff. It is then very easy to
+  tweak the output afterwards. The original diff-fancy relies on regexp,
+  which makes it harder to customize.
+- support for submodules change in the diff
+- support for octopus merge
+- clean up 'No new line at end of file' for symlinks (which never have a new line)
+
+TODO:
+- support 'git log -p --graph'
+- support git config to activate features on a repo basis
+
 ## Examples
 
 - `gitstatus.rb folders`
