@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
-#Inspired by https://github.com/olivierverdier/zsh-git-prompt 
-#(commit 350be32093d0585f395413253536d891c247f538; last commit checked 0a6c8b610e799040b612db8888945f502a2ddd9d)
+# Inspired by https://github.com/olivierverdier/zsh-git-prompt
+# [commit: 350be32093d0585f395413253536d891c247f538,
+#  last commit checked: 0a6c8b610e799040b612db8888945f502a2ddd9d (2016-02-14))
 #Inspired by the contrib git script
 
 require "open3"
