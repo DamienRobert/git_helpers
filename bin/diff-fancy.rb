@@ -675,7 +675,7 @@ if __FILE__ == $0
 	end
 	optparse.parse!
 	@opts[:pager]=false unless Module.const_defined?('ShellHelpers')
-	@opts[:pager] && ShellHelpers.run_pager("--pattern '^(Date|added|deleted|modified): '")
+	@opts[:pager] && ShellHelpers.run_pager #("--pattern '^(Date|added|deleted|modified): '")
 
 	diff_highlight=ENV['DIFF_HIGHLIGHT']||"#{File.dirname(__FILE__)}/contrib/diff-highlight"
 
