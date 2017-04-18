@@ -106,6 +106,12 @@ module GitHelpers
 			end
 		end
 
+		def head
+			with_dir do
+				return GitBranch.new('HEAD', self)
+			end
+		end
+
 		#return all branches that have an upstream
 		#if branches=:all look through all branches
 		def all_upstream_branches(branches)
