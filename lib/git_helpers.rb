@@ -76,12 +76,14 @@ module GitHelpers
 		end
 
 		def with_toplevel(&b)
-			dir=relative_toplevel
-			if dir.empty?
-				Dir.chdir(dir,&b) 
-			else
-				warn "No toplevel found, executing inside dir #{@dir}"
-				with_dir(&b)
+			with_dir do
+				dir=relative_toplevel
+				if !dir.to_s.empty?
+					Dir.chdir(dir,&b)
+				else
+					warn "No toplevel found, executing inside dir #{@dir}"
+					with_dir(&b)
+				end
 			end
 		end
 
@@ -139,8 +141,8 @@ module GitHelpers
 	end
 	extend self
 	GitDir.instance_methods(false).each do |m|
-		define_method(m) do |*args|
-			GitDir.new.public_send(m,*args)
+		define_method(m) do |*args,&b|
+			GitDir.new.public_send(m,*args,&b)
 		end
 	end
 
