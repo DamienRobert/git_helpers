@@ -133,17 +133,17 @@ module GitHelpers
 		def infos
 			puts "## Remote URLs:"
 			puts
-			system("git remote -v")
+			system("git --no-pager remote -v")
 			puts
 			
 			puts "## Remote Branches:"
 			puts
-			system("git branch -r")
+			system("git --no-pager  branch -r")
 			puts
 			
 			puts "## Local Branches:"
 			puts
-			system("git branch")
+			system("git --no-pager  branch")
 			puts
 			
 			puts "## Most Recent Commit:"
