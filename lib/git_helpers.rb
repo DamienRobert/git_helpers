@@ -1,4 +1,5 @@
 require 'git_helpers/version'
+require 'git_helpers/extra_helpers'
 require 'dr/base/bool'
 require 'pathname'
 
@@ -16,9 +17,16 @@ module GitHelpers
 			@dir.to_s
 		end
 
+
 		#we could also use 'git -C #{@dir}' for each git invocation
 		def with_dir
 			Dir.chdir(@dir) { yield }
+		end
+
+		def all_files
+			with_dir do
+				%x/git ls-files -z/.split("\0")
+			end
 		end
 
 		#are we in a git folder?
@@ -96,7 +104,7 @@ module GitHelpers
 
 		def get_config(*args)
 			with_dir do
-				return %x/git config #{args.shelljoin}/
+				return %x/git config #{args.shelljoin}/.chomp
 			end
 		end
 
@@ -138,13 +146,66 @@ module GitHelpers
 				return c, c.upstream
 			end
 		end
-	end
-	extend self
-	GitDir.instance_methods(false).each do |m|
-		define_method(m) do |*args,&b|
-			GitDir.new.public_send(m,*args,&b)
+
+		def branch(branch="HEAD")
+			GitBranch.new(branch, dir: @self)
+		end
+
+		def branch_infos(*branches, local: false, remote: false, tags: false)
+			query=branches.map {|b| name_branch(b, method: 'full_name')}
+			query << 'refs/heads' if local
+			query << 'refs/remotes' if remote
+			query << 'refs/tags' if tags
+			r={}
+			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:remotename push:remoteref HEAD symref)
+			out=SH::Run.run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(',')}, ' #{query.shelljoin}", chomp: :lines)
+			out.each do |l|
+				infos=l.split(',')
+				full_name=infos[0]
+				r[full_name]=Hash[format.zip(infos)]
+				type=if full_name.start_with?("refs/heads/")
+							:local
+						elsif full_name.start_with?("refs/remotes/")
+							:remote
+						elsif full_name.start_with?("refs/tags/")
+							:tags
+						end
+				name = case type
+						when :local
+							full_name.delete_prefix("refs/heads/")
+						when :remote
+							full_name.delete_prefix("refs/remotes/")
+						when :tags
+							full_name.delete_prefix("refs/tags/")
+						end
+				r[full_name][:type]=type
+				r[full_name][:name]=name
+				if type == :local
+					rebase=get_config("branch.#{name}.rebase")
+					rebase = false if rebase.empty?
+					rebase = true if rebase == "true"
+					r[full_name][:rebase]=rebase
+				end
+			end
+			r
+		end
+
+		def name_branch(branch,*args)
+			GitBranch.new(branch).name(*args)
 		end
 	end
+
+	extend self
+	add_instance_methods = lambda do |klass|
+		klass.instance_methods(false).each do |m|
+			define_method(m) do |*args,&b|
+				GitDir.new.public_send(m,*args,&b)
+			end
+		end
+	end
+	add_instance_methods.call(GitDir)
+	add_instance_methods.call(GitStats)
+	add_instance_methods.call(GitExtraInfos)
 
 	class GitBranch
 		attr_accessor :gitdir
@@ -200,6 +261,10 @@ module GitHelpers
 					describe=describe2 if describe1.empty?
 				when "name"
 					describe=%x"git rev-parse --abbrev-ref --symbolic-full-name #{@branch.shellescape}".chomp!
+				when "full_name"
+					describe=%x"git rev-parse --symbolic-full-name #{@branch.shellescape}".chomp!
+				when "symbolic"
+					describe=%x"git rev-parse --symbolic #{@branch.shellescape}".chomp!
 				else
 					describe=%x/#{method}/.chomp! unless method.nil? or method.empty?
 				end
@@ -226,12 +291,22 @@ module GitHelpers
 			end
 		end
 
+		def push_remote
+			@gitdir.with_dir do
+				rm= %x/git config --get branch.#{@branch.shellescape}.pushRemote/.chomp! || 
+				%x/git config --get remote.pushDefault/.chomp! ||
+				remote
+				return rm
+			end
+		end
+
 		def upstream
 			@gitdir.with_dir do
 				up=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{u}/.chomp!
 				return new_branch(up)
 			end
 		end
+
 		def push
 			@gitdir.with_dir do
 				pu=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{push}/.chomp!
@@ -255,9 +330,9 @@ module GitHelpers
 			return up, pu
 		end
 
+		def branch_info
+			self.class.branch_infos(@branch)
+		end
 	end
 
-	def name_branch(branch,*args)
-		GitBranch.new(branch).name(*args)
-	end
 end
