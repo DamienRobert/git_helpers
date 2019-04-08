@@ -112,14 +112,12 @@ module GitHelpers
 			with_dir do
 				branchname= %x/git symbolic-ref -q --short HEAD/.chomp!
 				branchname||= %x/git rev-parse --verify HEAD/.chomp! if always
-				return GitBranch.new(branchname, self)
+				return branch(branchname)
 			end
 		end
 
 		def head
-			with_dir do
-				return GitBranch.new('HEAD', self)
-			end
+				return branch('HEAD')
 		end
 
 		#return all branches that have an upstream
@@ -131,9 +129,9 @@ module GitHelpers
 
 		def get_topic_branches(*branches, complete: :local)
 			if branches.length >= 2
-				return GitBranch.new(branches[0],self), GitBranch.new(branches[1],self)
+				return branch(branches[0]), branch(branches[1])
 			elsif branches.length == 1
-				b=GitBranch.new(branches[0])
+				b=branch(branches[0])
 				if complete == :local
 					return current_branch, b
 				elsif complete == :remote
@@ -180,18 +178,12 @@ module GitHelpers
 						end
 				r[full_name][:type]=type
 				r[full_name][:name]=name
-				if type == :local
-					rebase=get_config("branch.#{name}.rebase")
-					rebase = false if rebase.empty?
-					rebase = true if rebase == "true"
-					r[full_name][:rebase]=rebase
-				end
 			end
 			r
 		end
 
 		def name_branch(branch,*args)
-			GitBranch.new(branch).name(*args)
+			self.branch(branch).name(*args)
 		end
 	end
 
@@ -210,8 +202,9 @@ module GitHelpers
 	class GitBranch
 		attr_accessor :gitdir
 		attr_accessor :branch
+		attr_writer :infos
 
-		def initialize(branch="HEAD", dir=".")
+		def initialize(branch="HEAD", dir: ".")
 			@gitdir=dir.is_a?(GitDir) ? dir : GitDir.new(dir)
 			@branch=branch
 		end
@@ -230,6 +223,19 @@ module GitHelpers
 
 		def shellescape
 			@branch.shellescape
+		end
+		
+		def infos
+			return @infos if @infos
+			infos=branch_infos
+			type=infos[:type]
+			if type == :local
+				rebase=gitdir.get_config("branch.#{name}.rebase")
+				rebase = false if rebase.empty?
+				rebase = true if rebase == "true"
+				infos[:rebase]=rebase
+			end
+			@infos=infos
 		end
 
 		def name(method: "name", always: true)
@@ -330,8 +336,8 @@ module GitHelpers
 			return up, pu
 		end
 
-		def branch_info
-			self.class.branch_infos(@branch)
+		def branch_infos
+			@gitdir.branch_infos(@branch).values.first
 		end
 	end
 
