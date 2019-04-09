@@ -156,11 +156,12 @@ module GitHelpers
 			query << 'refs/tags' if tags
 			r={}
 			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:remotename push:remoteref HEAD symref)
-			out=SH::Run.run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(',')}, ' #{query.shelljoin}", chomp: :lines)
+			out=SH::Run.run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(';')}, ' #{query.shelljoin}", chomp: :lines)
 			out.each do |l|
-				infos=l.split(',')
+				infos=l.split(';')
 				full_name=infos[0]
-				r[full_name]=Hash[format.zip(infos)]
+				infos=Hash[format.zip(infos)]
+
 				type=if full_name.start_with?("refs/heads/")
 							:local
 						elsif full_name.start_with?("refs/remotes/")
@@ -176,14 +177,31 @@ module GitHelpers
 						when :tags
 							full_name.delete_prefix("refs/tags/")
 						end
-				r[full_name][:type]=type
-				r[full_name][:name]=name
+				infos[:type]=type
+				infos[:name]=name
+
+				origin = infos["upstream:remotename"]
+				unless origin.empty?
+					upstream_short=infos["upstream:short"]
+					infos["upstream:name"]=upstream_short.delete_prefix(origin+"/")
+				end
+				pushorigin = infos["push:remotename"]
+				unless pushorigin.empty?
+					push_short=infos["push:short"]
+					if push_short.empty?
+						infos["push:name"]=infos["refname:short"]
+					else
+						infos["push:name"]= push_short.delete_prefix(pushorigin+"/")
+					end
+				end
+
+				r[full_name]=infos
 			end
 			r
 		end
 
-		def name_branch(branch,*args)
-			self.branch(branch).name(*args)
+		def name_branch(branch='HEAD',**args)
+			self.branch(branch).name(**args)
 		end
 	end
 
