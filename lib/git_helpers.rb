@@ -120,7 +120,7 @@ module GitHelpers
 		end
 
 		def head
-				return branch('HEAD')
+			return branch('HEAD')
 		end
 
 		#return all branches that have an upstream
@@ -160,9 +160,12 @@ module GitHelpers
 		end
 
 		def ahead_behind(br1, br2)
-			out=SH::Run.run_simple("git rev-list --left-right --count #{br1.shellescape}...#{br2.shellescape}")
-			out.match(/(\d+)\s+(\d+)/) do |m|
-				return m[1].to_i, m[2].to_i #br1 is ahead by m[1], behind by m[2] from br2
+			with_dir do
+				out=SH::Run.run_simple("git rev-list --left-right --count #{br1.shellescape}...#{br2.shellescape}", error: :quiet)
+				out.match(/(\d+)\s+(\d+)/) do |m|
+					return m[1].to_i, m[2].to_i #br1 is ahead by m[1], behind by m[2] from br2
+				end
+				return 0, 0
 			end
 		end
 
@@ -176,6 +179,8 @@ module GitHelpers
 			query << 'refs/tags' if tags
 			r={}
 			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:track push:remotename push:remoteref HEAD symref)
+			#Note push:remoteref is buggy (always empty)
+			#and push:track is upstream:track
 			out=SH::Run.run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(';')}, ' #{query.shelljoin}", chomp: :lines)
 			out.each do |l|
 				infos=l.split(';')
@@ -213,12 +218,19 @@ module GitHelpers
 				track.match(/behind (\d+)/) do |m|
 					infos[:upstream_behind]=m[1].to_i
 				end
-				ptrack=infos["push:track"]
-				ptrack.match(/ahead (\d+)/) do |m|
-					infos[:push_ahead]=m[1].to_i
-				end
-				ptrack.match(/behind (\d+)/) do |m|
-					infos[:push_behind]=m[1].to_i
+
+				## git has a bug for push:track
+				# ptrack=infos["push:track"]
+				# ptrack.match(/ahead (\d+)/) do |m|
+				# 	infos[:push_ahead]=m[1].to_i
+				# end
+				# ptrack.match(/behind (\d+)/) do |m|
+				# 	infos[:push_behind]=m[1].to_i
+				# end
+				unless infos["push"].empty?
+					ahead, behind=ahead_behind(infos["refname"], infos["push"])
+					infos[:push_ahead]=ahead
+					infos[:push_behind]=behind
 				end
 
 				origin = infos["upstream:remotename"]
@@ -280,6 +292,60 @@ module GitHelpers
 
 		def name_branch(branch='HEAD',**args)
 			self.branch(branch).name(**args)
+		end
+
+		def status
+			branch={}
+			paths={}
+			r={paths: paths, branch: branch}
+			parse_xy=lambda do |s; r|
+				r=[]
+				s.each_char do |c|
+					case c
+					when '.'; r << :kept
+					when 'M'; r << :updated
+					when 'A'; r << :added
+					when 'D'; r << :deleted
+					when 'R'; r << :renamed
+					when 'C'; r << :copied
+					when 'U'; r << :unmerged
+					end
+				end
+				r
+			end
+			with_dir do
+				out=SH::Run.run_simple("git status --porcelain=v2 --branch", error: :quiet, chomp: :lines)
+				out.each do |l|
+					l.match(/# branch.oid\s+(.*)/) do |m|
+						branch[:oid]=m[1]
+					end
+					l.match(/# branch.head\s+(.*)/) do |m|
+						branch[:head]=m[1]
+					end
+					l.match(/# branch.upstream\s+(.*)/) do |m|
+						branch[:upstream]=m[1]
+					end
+					l.match(/# branch.ab\s+\+(\d*)\s+-(\d*)/) do |m|
+						branch[:ahead]=m[1].to_i
+						branch[:behind]=m[2].to_i
+					end
+
+					l.match(/1 (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (.*)/) do |m|
+						xy=m[1]
+						x,y=parse_xy.call(xy)
+						sub=m[2]
+						mH=m[3]
+						mI=m[4]
+						mW=m[5]
+						hH=m[6]
+						hI=m[7]
+						path=m[8]
+						info={xy: xy, sub: sub, mH: mH, mI: mI, mW: mW, hH: hH, hI: hI, index: x, worktree: y}
+						paths[path]=info
+					end
+				end
+			end
+			return r
 		end
 	end
 
@@ -440,6 +506,10 @@ module GitHelpers
 
 		def branch_infos
 			@gitdir.branch_infos(@branch).values.first
+		end
+
+		def ahead_behind(br)
+			@gitdir.ahead_behind(@branch,br)
 		end
 	end
 
