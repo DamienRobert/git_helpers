@@ -294,13 +294,15 @@ module GitHelpers
 			self.branch(branch).name(**args)
 		end
 
-		def status
+		def status(ignored: false, untracked: true)
 			branch={}
 			paths={}
-			r={paths: paths, branch: branch}
-			parse_xy=lambda do |s; r|
+			l_untracked=[]
+			l_ignored=[]
+			r={paths: paths, branch: branch, untracked: l_untracked, ignored: l_ignored}
+			complete_infos=lambda do |infos; r|
 				r=[]
-				s.each_char do |c|
+				infos[:xy].each_char do |c|
 					case c
 					when '.'; r << :kept
 					when 'M'; r << :updated
@@ -311,7 +313,29 @@ module GitHelpers
 					when 'U'; r << :unmerged
 					end
 				end
-				r
+				infos[:index]=r[0]
+				infos[:worktree]=r[1]
+
+				sub=infos[:sub]
+				if sub[0]=="N"
+					infos[:submodule]=false
+				else
+					infos[:submodule]=true
+					infos[:sub_commited]=sub[1]=="C"
+					infos[:sub_modified]=sub[2]=="M"
+					infos[:sub_untracked]=sub[3]=="U"
+				end
+
+				if (xscore=infos[:xscore])
+					if xscore[0]=="R"
+						infos[:rename]=true
+					elsif xscore[0]=="C"
+						infos[:copy]=true
+					end
+					infos[:score]=xscore[1..-1].to_i
+				end
+
+				infos
 			end
 			with_dir do
 				out=SH::Run.run_simple("git status --porcelain=v2 --branch", error: :quiet, chomp: :lines)
@@ -331,17 +355,39 @@ module GitHelpers
 					end
 
 					l.match(/1 (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (.*)/) do |m|
-						xy=m[1]
-						x,y=parse_xy.call(xy)
-						sub=m[2]
-						mH=m[3]
-						mI=m[4]
-						mW=m[5]
-						hH=m[6]
-						hI=m[7]
+						xy=m[1]; sub=m[2]; #modified data, submodule information
+						mH=m[3]; mI=m[4]; mW=m[5]; #file modes
+						hH=m[6]; hI=m[7]; #hash
 						path=m[8]
-						info={xy: xy, sub: sub, mH: mH, mI: mI, mW: mW, hH: hH, hI: hI, index: x, worktree: y}
-						paths[path]=info
+						info={xy: xy, sub: sub, mH: mH, mI: mI, mW: mW, hH: hH, hI: hI}
+						paths[path]=complete_infos.call(info)
+					end
+
+					#rename copy
+					l.match(/2 (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (.*)\t(.*)/) do |m|
+						xy=m[1]; sub=m[2]; mH=m[3]; mI=m[4]; mW=m[5];
+						hH=m[6]; hI=m[7]; xscore=m[8]
+						path=m[9]; orig_path=m[10]
+						info={xy: xy, sub: sub, mH: mH, mI: mI, mW: mW, hH: hH, hI: hI,
+						xscore: xscore, orig_path: orig_path}
+						paths[path]=complete_infos.call(info)
+					end
+
+					# unmerged
+					l.match(/u (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (.*)/) do |m|
+						xy=m[1]; sub=m[2]; #modified data, submodule information
+						m1=m[3]; m2=m[4]; m3=m[5]; mW=m[6] #file modes
+						h1=m[7]; h2=m[8]; h3=m[9] #hash
+						path=m[10]
+						info={xy: xy, sub: sub, m1: m1, m2: m2, m3: m3, mW: mW, h1: h1, h2: h2, h3: h3}
+						paths[path]=complete_infos.call(info)
+					end
+
+					l.match(/\? (.*)/) do |m|
+						l_untracked << m[1]
+					end
+					l.match(/! (.*)/) do |m|
+						l_ignored << m[1]
 					end
 				end
 			end
