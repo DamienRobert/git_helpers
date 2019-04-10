@@ -43,9 +43,11 @@ def gs_output(dir=".", **opts)
 	g=GitHelpers::GitDir.new(dir || ".")
 	puts "#{prettify_dir(dir)}#{g.format_status(**opts)}"
 	if opts[:status] and g.worktree?
-		out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short --branch")
-		out.each_line.each do |line|
-			print " "*(opts[:indent]||0) + line
+		g.with_dir do
+			out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short --branch")
+			out.each_line.each do |line|
+				print " "*(opts[:indent]||0) + line
+			end
 		end
 	end
 end
@@ -65,7 +67,7 @@ else
 	args.each do |dir|
 		gs_output(dir,**opts)
 		if opts[:submodules]
-			Dir.chdir(dir || ".") do
+			g.with_dir do
 				%x/git submodule status/.each_line.map { |l| l.split[1] }.each do |sdir|
 					gs_output(sdir, **opts)
 				end

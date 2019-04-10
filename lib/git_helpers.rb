@@ -294,7 +294,48 @@ module GitHelpers
 			self.branch(branch).name(**args)
 		end
 
-		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, name: :default, **opts)
+		#puts the stash commits
+		def stash
+			with_dir do
+				if SH.run_success("git rev-parse --verify refs/stash")
+					return SH.run_simple("git rev-list -g refs/stash")
+				else
+					return nil
+				end
+			end
+		end
+
+		def sequencer
+			r=[]
+			if (@dir+"rebase-merge").directory?
+				if (@dir+"rebase-merge/interactive").file?
+					r<<" rb-i " #REBASE-i
+				else
+					r<<" rb-m " #REBASE-m
+				end
+				r<<(@dir+"rebase-merge/head-name").read.chomp.sub(/^refs\/heads\//,"")
+			end
+			if (@dir+"rebase-apply").directory?
+				if (@dir+"rebase-apply/rebasing").file?
+					r<<" rb" #RB
+				elsif (@dir+"rebase-apply/applying").file?
+					r<<" am" #AM
+				else
+					r<<" am/rb" #AM/REBASE
+				end
+			end
+			if (@dir+"MERGE_HEAD").file?
+				r<<" mg" #MERGING
+			end
+			if (@dir+"CHERRY_PICK_HEAD").file?
+				r<<" ch" #CHERRY-PICKING
+			end
+			if (@dir+"BISECT_LOG").file?
+				r<<" bi" #BISECTING
+			end
+		end
+
+		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, stash: true, name: 'branch-fb', **opts)
 			l_branch={}
 			paths={}
 			l_untracked=[]
@@ -414,6 +455,10 @@ module GitHelpers
 			r[:changed]=changed
 			r[:untracked]=l_untracked.length
 			r[:ignored]=l_ignored.length
+			if stash
+				r[:stash]=self.stash&.lines&.length
+			end
+			r[:sequencer]=self.sequencer if sequencer
 			return r
 		end
 
@@ -432,10 +477,11 @@ module GitHelpers
 			staged=status_infos[:staged]
 			conflicts=status_infos[:conflicts]
 			untracked=status_infos[:untracked]
+			stash=status_infos[:stash]||0
 			clean=true
 			clean=false if staged != 0 || changed !=0 || untracked !=0 || conflicts !=0
 			#ignored=status_infos[:ignored]
-			sequencer="" #todo
+			sequencer=status_infos[:sequencer]&.join(" ") || ""
 			r="(" <<
 			branch.color(:magenta,:bold) <<
 			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
@@ -447,6 +493,7 @@ module GitHelpers
 			(untracked==0 ? "" : "…" ) <<
 			(clean ? "✔".color(:green,:bold) : "" ) <<
 			(sequencer.empty? ? "" : sequencer.color(:yellow) ) <<
+			(stash==0 ? "": " $#{stash}".color(:yellow)) <<
 			")"
 			r
 		end
