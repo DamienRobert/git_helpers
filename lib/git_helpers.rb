@@ -38,26 +38,26 @@ module GitHelpers
 			launch=launch + " 2>/dev/null" if quiet
 			with_dir do
 				system launch
-				return Bool.to_bool($?)
+				return DR::Bool.to_bool($?)
 			end
 		end
 
 		#are we in .git/?
 		def gitdir?
 			with_dir do
-				return Bool.to_bool(%x/git rev-parse --is-inside-git-dir/)
+				return DR::Bool.to_bool(%x/git rev-parse --is-inside-git-dir/)
 			end
 		end
 		#are we in the worktree?
 		def worktree?
 			with_dir do
-				return Bool.to_bool(%x/git rev-parse --is-inside-work-tree/)
+				return DR::Bool.to_bool(%x/git rev-parse --is-inside-work-tree/)
 			end
 		end
 		#are we in a bare repo?
 		def bare?
 			with_dir do
-				return Bool.to_bool(%x/git rev-parse --is-bare-repository/)
+				return DR::Bool.to_bool(%x/git rev-parse --is-bare-repository/)
 			end
 		end
 		
@@ -294,7 +294,7 @@ module GitHelpers
 			self.branch(branch).name(**args)
 		end
 
-		def status(ignored: nil, untracked: nil, branch: true)
+		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, name: :default, **opts)
 			l_branch={}
 			paths={}
 			l_untracked=[]
@@ -358,7 +358,11 @@ module GitHelpers
 						l_branch[:oid]=m[1]
 					end
 					l.match(/# branch.head\s+(.*)/) do |m|
-						l_branch[:head]=m[1]
+						br_name=m[1]
+						if br_name=="(detached)" and name
+							br_name=self.name_branch(method: name, always: true)
+						end
+						l_branch[:head]=br_name
 					end
 					l.match(/# branch.upstream\s+(.*)/) do |m|
 						l_branch[:upstream]=m[1]
@@ -413,7 +417,14 @@ module GitHelpers
 			return r
 		end
 
-		def format_status(status_infos)
+		def format_status(status_infos=nil, **opts)
+			if status_infos.nil?
+				if worktree?
+					status_infos=self.status(**opts)
+				else
+					return ""
+				end
+			end
 			branch=status_infos.dig(:branch,:head)
 			ahead=status_infos.dig(:branch,:ahead)||0
 			behind=status_infos.dig(:branch,:behind)||0
@@ -498,7 +509,8 @@ module GitHelpers
 			@gitdir.format_branch_infos([infos], **opts)
 		end
 
-		def name(method: "name", always: true)
+		def name(method: :default, always: true)
+			method="name" if method == :default
 			@gitdir.with_dir do
 				case method
 				when "sha1"
@@ -526,7 +538,7 @@ module GitHelpers
 					describe=describe1 if describe2.empty?
 					describe=describe2 if describe1.empty?
 				when "name"
-					describe=%x"git rev-parse --abbrev-ref --symbolic-full-name #{@branch.shellescape}".chomp!
+					describe=%x"git rev-parse --abbrev-ref #{@branch.shellescape}".chomp!
 				when "full_name"
 					describe=%x"git rev-parse --symbolic-full-name #{@branch.shellescape}".chomp!
 				when "symbolic"

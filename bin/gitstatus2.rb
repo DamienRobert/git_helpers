@@ -35,16 +35,16 @@ if !opts[:color]
 end
 
 def prettify_dir(dir)
-	return '' if dir=="."
+	return '' if dir.nil?
 	return (dir.sub(/^#{ENV['HOME']}/,"~"))+": "
 end
 
 def gs_output(dir=".", **opts)
-	g=GitHelpers::GitDir.new(dir)
-	status=g.status
-	puts "#{prettify_dir(dir)}#{g.format_status(status)}"
-	if opts[:status] and g.git?
-		g.msg.lines.each do |line|
+	g=GitHelpers::GitDir.new(dir || ".")
+	puts "#{prettify_dir(dir)}#{g.format_status(**opts)}"
+	if opts[:status] and g.worktree?
+		out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short --branch")
+		out.each_line.each do |line|
 			print " "*(opts[:indent]||0) + line
 		end
 	end
@@ -58,14 +58,14 @@ else
 	args=ARGV
 	if args.empty?
 		opts[:indent]=0 unless opts[:indent]
-		args=["."]
+		args=[nil]
 	else
 		opts[:indent]=2 unless opts[:indent]
 	end
 	args.each do |dir|
 		gs_output(dir,**opts)
 		if opts[:submodules]
-			Dir.chdir(dir) do
+			Dir.chdir(dir || ".") do
 				%x/git submodule status/.each_line.map { |l| l.split[1] }.each do |sdir|
 					gs_output(sdir, **opts)
 				end
