@@ -294,12 +294,17 @@ module GitHelpers
 			self.branch(branch).name(**args)
 		end
 
-		def status(ignored: false, untracked: true)
-			branch={}
+		def status(ignored: nil, untracked: nil, branch: true)
+			l_branch={}
 			paths={}
 			l_untracked=[]
 			l_ignored=[]
-			r={paths: paths, branch: branch, untracked: l_untracked, ignored: l_ignored}
+			r={paths: paths, branch: l_branch, untracked: l_untracked, ignored: l_ignored}
+
+			staged=0
+			changed=0
+			conflicts=0
+
 			complete_infos=lambda do |infos; r|
 				r=[]
 				infos[:xy].each_char do |c|
@@ -314,7 +319,10 @@ module GitHelpers
 					end
 				end
 				infos[:index]=r[0]
+				staged +=1 unless r[0]==:kept or r[0]==:unmerged
 				infos[:worktree]=r[1]
+				changed +=1 unless r[1]==:kept or r[0]==:unmerged
+				conflicts+=1 if r[0]==:unmerged or r[1]==:unmerged
 
 				sub=infos[:sub]
 				if sub[0]=="N"
@@ -338,20 +346,26 @@ module GitHelpers
 				infos
 			end
 			with_dir do
-				out=SH::Run.run_simple("git status --porcelain=v2 --branch", error: :quiet, chomp: :lines)
+				call="git status --porcelain=v2"
+				call << " --branch" if branch
+				call << " --untracked-files" if untracked
+				call << " --untracked-files=no" if untracked==false
+				call << " --ignored" if ignored
+				call << " --ignored=no" if ignored==false
+				out=SH::Run.run_simple(call, error: :quiet, chomp: :lines)
 				out.each do |l|
 					l.match(/# branch.oid\s+(.*)/) do |m|
-						branch[:oid]=m[1]
+						l_branch[:oid]=m[1]
 					end
 					l.match(/# branch.head\s+(.*)/) do |m|
-						branch[:head]=m[1]
+						l_branch[:head]=m[1]
 					end
 					l.match(/# branch.upstream\s+(.*)/) do |m|
-						branch[:upstream]=m[1]
+						l_branch[:upstream]=m[1]
 					end
 					l.match(/# branch.ab\s+\+(\d*)\s+-(\d*)/) do |m|
-						branch[:ahead]=m[1].to_i
-						branch[:behind]=m[2].to_i
+						l_branch[:ahead]=m[1].to_i
+						l_branch[:behind]=m[2].to_i
 					end
 
 					l.match(/1 (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (.*)/) do |m|
@@ -391,7 +405,39 @@ module GitHelpers
 					end
 				end
 			end
+			r[:conflicts]=conflicts
+			r[:staged]=staged
+			r[:changed]=changed
+			r[:untracked]=l_untracked.length
+			r[:ignored]=l_ignored.length
 			return r
+		end
+
+		def format_status(status_infos)
+			branch=status_infos.dig(:branch,:head)
+			ahead=status_infos.dig(:branch,:ahead)||0
+			behind=status_infos.dig(:branch,:behind)||0
+			changed=status_infos[:changed]
+			staged=status_infos[:staged]
+			conflicts=status_infos[:conflicts]
+			untracked=status_infos[:untracked]
+			clean=true
+			clean=false if staged != 0 || changed !=0 || untracked !=0 || conflicts !=0
+			#ignored=status_infos[:ignored]
+			sequencer="" #todo
+			r="(" <<
+			branch.color(:magenta,:bold) <<
+			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
+			(behind==0 ? "" : "↓"<<behind.to_s ) <<
+			"|" <<
+			(staged==0 ? "" : ("●"+staged.to_s).color(:red) ) <<
+			(conflicts==0 ? "" : ("✖"+conflicts.to_s).color(:red) ) <<
+			(changed==0 ? "" : ("✚"+changed.to_s).color(:blue) ) <<
+			(untracked==0 ? "" : "…" ) <<
+			(clean ? "✔".color(:green,:bold) : "" ) <<
+			(sequencer.empty? ? "" : sequencer.color(:yellow) ) <<
+			")"
+			r
 		end
 	end
 
