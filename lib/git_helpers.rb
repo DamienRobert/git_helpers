@@ -1,7 +1,10 @@
 require 'git_helpers/version'
 require 'git_helpers/extra_helpers'
 require 'dr/base/bool'
+require 'simplecolor'
 require 'pathname'
+
+SimpleColor.mix_in_string
 
 module GitHelpers
 	#git functions helper
@@ -127,6 +130,13 @@ module GitHelpers
 			upstreams=%x!git for-each-ref --format='%(upstream:short)' refs/heads/branch/!
 		end
 
+		def push_default
+			with_dir do
+				return %x/git config --get remote.pushDefault/.chomp! || "origin"
+			end
+		end
+
+
 		def get_topic_branches(*branches, complete: :local)
 			if branches.length >= 2
 				return branch(branches[0]), branch(branches[1])
@@ -149,18 +159,30 @@ module GitHelpers
 			GitBranch.new(branch, dir: @self)
 		end
 
-		def branch_infos(*branches, local: false, remote: false, tags: false)
-			query=branches.map {|b| name_branch(b, method: 'full_name')}
+		def ahead_behind(br1, br2)
+			out=SH::Run.run_simple("git rev-list --left-right --count #{br1.shellescape}...#{br2.shellescape}")
+			out.match(/(\d+)\s+(\d+)/) do |m|
+				return m[1].to_i, m[2].to_i #br1 is ahead by m[1], behind by m[2] from br2
+			end
+		end
+
+		def branch_infos(*branches, local: false, remote: false, tags: false, merged: nil, no_merged: nil)
+			query = []
+			query << "--merged=#{merged.shellescape}" if merged
+			query << "--no_merged=#{no_merged.shellescape}" if no_merged
+			query += branches.map {|b| name_branch(b, method: 'full_name')}
 			query << 'refs/heads' if local
 			query << 'refs/remotes' if remote
 			query << 'refs/tags' if tags
 			r={}
-			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:remotename push:remoteref HEAD symref)
+			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:track push:remotename push:remoteref HEAD symref)
 			out=SH::Run.run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(';')}, ' #{query.shelljoin}", chomp: :lines)
 			out.each do |l|
 				infos=l.split(';')
 				full_name=infos[0]
 				infos=Hash[format.zip(infos)]
+
+				infos[:head]=!infos["HEAD"].empty?
 
 				type=if full_name.start_with?("refs/heads/")
 							:local
@@ -179,6 +201,25 @@ module GitHelpers
 						end
 				infos[:type]=type
 				infos[:name]=name
+
+				infos[:upstream_ahead]=0
+				infos[:upstream_behind]=0
+				infos[:push_ahead]=0
+				infos[:push_behind]=0
+				track=infos["upstream:track"]
+				track.match(/ahead (\d+)/) do |m|
+					infos[:upstream_ahead]=m[1].to_i
+				end
+				track.match(/behind (\d+)/) do |m|
+					infos[:upstream_behind]=m[1].to_i
+				end
+				ptrack=infos["push:track"]
+				ptrack.match(/ahead (\d+)/) do |m|
+					infos[:push_ahead]=m[1].to_i
+				end
+				ptrack.match(/behind (\d+)/) do |m|
+					infos[:push_behind]=m[1].to_i
+				end
 
 				origin = infos["upstream:remotename"]
 				unless origin.empty?
@@ -200,6 +241,43 @@ module GitHelpers
 			r
 		end
 
+		def format_branch_infos(infos, compare: nil, merged: nil)
+			# warning, here we pass the info values, ie infos should be a list
+			infos.each do |i|
+				name=i["refname:short"]
+				upstream=i["upstream:short"]
+				color=:magenta
+				if merged
+					color=:red #not merged
+					[*merged].each do |br|
+						ahead, behind=ahead_behind(i["refname"], br)
+						if ahead==0
+							color=:magenta
+							break
+						end
+					end
+				end
+				r="#{i["HEAD"]}#{name.color(color)}"
+				if compare
+					ahead, behind=ahead_behind(i["refname"], compare)
+					r << "↑#{ahead}" unless ahead==0
+					r << "↓#{behind}" unless behind==0
+				end
+				unless upstream.empty?
+					r << "  @{u}=#{upstream.color(:yellow)}"
+					r << "↑#{i[:upstream_ahead]}" unless i[:upstream_ahead]==0
+					r << "↓#{i[:upstream_behind]}" unless i[:upstream_behind]==0
+				end
+				push=i["push:short"]
+				unless push.empty?
+					r << "  @{push}=#{push.color(:yellow)}"
+					r << "↑#{i[:push_ahead]}" unless i[:push_ahead]==0
+					r << "↓#{i[:push_behind]}" unless i[:push_behind]==0
+				end
+				puts r
+			end
+		end
+
 		def name_branch(branch='HEAD',**args)
 			self.branch(branch).name(**args)
 		end
@@ -217,6 +295,7 @@ module GitHelpers
 	add_instance_methods.call(GitStats)
 	add_instance_methods.call(GitExtraInfos)
 
+	GitBranchError = Class.new(Exception)
 	class GitBranch
 		attr_accessor :gitdir
 		attr_accessor :branch
@@ -228,7 +307,7 @@ module GitHelpers
 		end
 
 		def new_branch(name)
-			self.class.new(name, @gitdir)
+			self.class.new(name, dir: @gitdir)
 		end
 
 		def to_s
@@ -246,6 +325,7 @@ module GitHelpers
 		def infos
 			return @infos if @infos
 			infos=branch_infos
+			raise GitBranchError.new("Bad Branch #{self}") if infos.nil?
 			type=infos[:type]
 			if type == :local
 				rebase=gitdir.get_config("branch.#{name}.rebase")
@@ -254,6 +334,10 @@ module GitHelpers
 				infos[:rebase]=rebase
 			end
 			@infos=infos
+		end
+
+		def format_infos(**opts)
+			@gitdir.format_branch_infos([infos], **opts)
 		end
 
 		def name(method: "name", always: true)
