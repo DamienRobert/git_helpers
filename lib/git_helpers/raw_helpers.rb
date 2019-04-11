@@ -57,4 +57,49 @@ module GitHelpers
 			end
 		end
 	end
+
+	class GitBranch
+		def raw_rebase?
+			@gitdir.with_dir do
+				rb=%x/git config --bool branch.#{@branch.shellescape}.rebase/.chomp!
+				rb||=%x/git config --bool pull.rebase/.chomp!
+				return rb=="true"
+			end
+		end
+
+		def raw_remote
+			@gitdir.with_dir do
+				rm=%x/git config --get branch.#{@branch.shellescape}.remote/.chomp!
+				rm||="origin"
+				return rm
+			end
+		end
+
+		def raw_push_remote
+			@gitdir.with_dir do
+				rm= %x/git config --get branch.#{@branch.shellescape}.pushRemote/.chomp! || 
+				%x/git config --get remote.pushDefault/.chomp! ||
+				remote
+				return rm
+			end
+		end
+
+		def raw_upstream
+			@gitdir.with_dir do
+				up=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{u}/.chomp!
+				return new_branch(up)
+			end
+		end
+
+		def raw_push
+			@gitdir.with_dir do
+				pu=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{push}/.chomp!
+				return new_branch(pu)
+			end
+		end
+
+		def raw_hash
+			@hash||=`git rev-parse #{@branch.shellescape}`.chomp!
+		end
+	end
 end

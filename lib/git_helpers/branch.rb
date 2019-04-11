@@ -54,6 +54,8 @@ module GitHelpers
 					describe=%x"git describe #{@branch.shellescape}".chomp!
 				when "contains"
 					describe=%x"git describe --contains #{@branch.shellescape}".chomp!
+				when "tags"
+					describe=%x"git describe --tags #{@branch.shellescape}".chomp!
 				when "match"
 					describe=%x"git describe --tags --exact-match #{@branch.shellescape}".chomp!
 				when "topic"
@@ -89,46 +91,24 @@ module GitHelpers
 		end
 
 		def rebase?
-			@gitdir.with_dir do
-				rb=%x/git config --bool branch.#{@branch.shellescape}.rebase/.chomp!
-				rb||=%x/git config --bool pull.rebase/.chomp!
-				return rb=="true"
-			end
+			infos[:rebase]
 		end
-
 		def remote
-			@gitdir.with_dir do
-				rm=%x/git config --get branch.#{@branch.shellescape}.remote/.chomp!
-				rm||="origin"
-				return rm
-			end
+			infos["upstream:remotename"]
 		end
-
 		def push_remote
-			@gitdir.with_dir do
-				rm= %x/git config --get branch.#{@branch.shellescape}.pushRemote/.chomp! || 
-				%x/git config --get remote.pushDefault/.chomp! ||
-				remote
-				return rm
-			end
+			infos["push:remotename"]
 		end
-
 		def upstream
-			@gitdir.with_dir do
-				up=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{u}/.chomp!
-				return new_branch(up)
-			end
+			# up=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{u}/.chomp!
+			new_branch(infos["upstream:short"])
 		end
-
 		def push
-			@gitdir.with_dir do
-				pu=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{push}/.chomp!
-				return new_branch(pu)
-			end
+			# pu=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{push}/.chomp!
+			new_branch(infos["push:short"])
 		end
-
 		def hash
-			@hash||=`git rev-parse #{@branch.shellescape}`.chomp!
+			infos["objectname"]
 		end
 
 		def ==(other)

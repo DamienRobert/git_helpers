@@ -13,36 +13,40 @@ module GitHelpers
 		end
 
 		def sequencer
+			gitdir=self.gitdir
 			r=[]
-			if (@dir+"rebase-merge").directory?
-				if (@dir+"rebase-merge/interactive").file?
-					r<<" rb-i " #REBASE-i
+			if (gitdir+"rebase-merge").directory?
+				if (gitdir+"rebase-merge/interactive").file?
+					r<<"rb-i " #REBASE-i
 				else
-					r<<" rb-m " #REBASE-m
+					r<<"rb-m " #REBASE-m
 				end
-				r<<(@dir+"rebase-merge/head-name").read.chomp.sub(/^refs\/heads\//,"")
+				r<<(gitdir+"rebase-merge/head-name").read.chomp.sub(/^refs\/heads\//,"")
 			end
-			if (@dir+"rebase-apply").directory?
-				if (@dir+"rebase-apply/rebasing").file?
-					r<<" rb" #RB
-				elsif (@dir+"rebase-apply/applying").file?
-					r<<" am" #AM
+			if (gitdir+"rebase-apply").directory?
+				if (gitdir+"rebase-apply/rebasing").file?
+					r<<"rb" #RB
+				elsif (gitdir+"rebase-apply/applying").file?
+					r<<"am" #AM
 				else
-					r<<" am/rb" #AM/REBASE
+					r<<"am/rb" #AM/REBASE
 				end
 			end
-			if (@dir+"MERGE_HEAD").file?
-				r<<" mg" #MERGING
+			if (gitdir+"MERGE_HEAD").file?
+				r<<"mg" #MERGING
 			end
-			if (@dir+"CHERRY_PICK_HEAD").file?
-				r<<" ch" #CHERRY-PICKING
+			if (gitdir+"CHERRY_PICK_HEAD").file?
+				r<<"ch" #CHERRY-PICKING
 			end
-			if (@dir+"BISECT_LOG").file?
-				r<<" bi" #BISECTING
+			if (gitdir+"REVERT_HEAD").file?
+				r<<"rv" #REVERTING
+			end
+			if (gitdir+"BISECT_LOG").file?
+				r<<"bi" #BISECTING
 			end
 		end
 
-		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, stash: true, name: 'branch-fb', **opts)
+		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, stash: true, detached_name: 'branch-fb', **_opts)
 			l_branch={}
 			paths={}
 			l_untracked=[]
@@ -107,8 +111,8 @@ module GitHelpers
 					end
 					l.match(/# branch.head\s+(.*)/) do |m|
 						br_name=m[1]
-						if br_name=="(detached)" and name
-							br_name=self.name_branch(method: name, always: true)
+						if br_name=="(detached)" and detached_name
+							br_name=self.name_branch(method: detached_name, always: true)
 						end
 						l_branch[:head]=br_name
 					end

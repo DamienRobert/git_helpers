@@ -16,19 +16,29 @@ module GitHelpers
 			@dir=Pathname.new(dir.to_s).realpath
 		end
 
+		def to_s
+			@dir.to_s
+		end
+		#we could also use 'git -C #{@dir}' for each git invocation
+		def with_dir
+			Dir.chdir(@dir) { yield }
+		end
+
 		def infos(quiet: true)
 			return @infos if @infos
-			status, out, _err=SH.run("git rev-parse --is-inside-git-dir --is-inside-work-tree --is-bare-repository --show-prefix --show-toplevel --show-cdup --git-dir", chomp: :lines, quiet: quiet)
-			@infos={}
-			@infos[:git]=status.success?
-			@infos[:in_gitdir]=DR::Bool.to_bool out[0]
-			@infos[:in_worktree]=DR::Bool.to_bool out[1]
-			@infos[:is_bare]=DR::Bool.to_bool out[2]
-			@infos[:prefix]=out[3]
-			@infos[:toplevel]=out[4]
-			@infos[:cdup]=out[5]
-			@infos[:gitdir]=out[6]
-			@infos
+			with_dir do
+				status, out, _err=SH.run("git rev-parse --is-inside-git-dir --is-inside-work-tree --is-bare-repository --show-prefix --show-toplevel --show-cdup --git-dir", chomp: :lines, quiet: quiet)
+				@infos={}
+				@infos[:git]=status.success?
+				@infos[:in_gitdir]=DR::Bool.to_bool out[0]
+				@infos[:in_worktree]=DR::Bool.to_bool out[1]
+				@infos[:is_bare]=DR::Bool.to_bool out[2]
+				@infos[:prefix]=out[3]
+				@infos[:toplevel]=out[4]
+				@infos[:cdup]=out[5]
+				@infos[:gitdir]=out[6]
+				@infos
+			end
 		end
 
 		#are we a git repo?
@@ -49,28 +59,19 @@ module GitHelpers
 		end
 		#relative path from toplevel to @dir
 		def prefix
-			infos[:prefix]
+			ShellHelpers::Pathname.new(infos[:prefix])
 		end
 		#return the absolute path of the toplevel
 		def toplevel
-			infos[:toplevel]
+			ShellHelpers::Pathname.new(infos[:toplevel])
 		end
 		#return the relative path from @dir to the toplevel
 		def relative_toplevel
-			infos[:cdup]
+			ShellHelpers::Pathname.new(infos[:cdup])
 		end
 		#get path to .git directory (can be relative or absolute)
 		def gitdir
-			infos[:gitdir]
-		end
-
-		def to_s
-			@dir.to_s
-		end
-
-		#we could also use 'git -C #{@dir}' for each git invocation
-		def with_dir
-			Dir.chdir(@dir) { yield }
+			ShellHelpers::Pathname.new(infos[:gitdir])
 		end
 
 		def all_files
