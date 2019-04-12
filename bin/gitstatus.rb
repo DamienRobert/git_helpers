@@ -64,7 +64,7 @@ end
 
 if opts[:prompt]
 	SimpleColor.enabled=:shell
-	prompt=GitStatus::Git.new.prompt
+	prompt=GitHelpers.create.format_status(**opts)
 	puts prompt if prompt #in ruby1.8, puts nil output nil...
 else
 	args=ARGV
