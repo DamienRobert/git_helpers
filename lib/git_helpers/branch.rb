@@ -30,6 +30,16 @@ module GitHelpers
 			@infos=nil
 		end
 
+		def run(*args, &b)
+			@gitdir.run(*args, &b)
+		end
+		def run_simple(*args,&b)
+			@gitdir.run_simple(*args, &b)
+		end
+		def run_success(*args,&b)
+			@gitdir.run_success(*args, &b)
+		end
+
 		def infos
 			return @infos if @infos
 			@infos=infos!
@@ -54,50 +64,50 @@ module GitHelpers
 		end
 
 		def name(method: :default, always: true)
+			l=lambda { |ev| run_simple(ev, chomp: true) }
 			method="name" if method == :default
-			@gitdir.with_dir do
+			describe=
 				case method.to_s
 				when "sha1"
-					describe=%x"git rev-parse --short #{@branch.shellescape}".chomp!
+					l.call "git rev-parse --short #{@branch.shellescape}"
 				when "describe"
-					describe=%x"git describe #{@branch.shellescape}".chomp!
+					l.call "git describe #{@branch.shellescape}"
 				when "contains"
-					describe=%x"git describe --contains #{@branch.shellescape}".chomp!
+					l.call "git describe --contains #{@branch.shellescape}"
 				when "tags"
-					describe=%x"git describe --tags #{@branch.shellescape}".chomp!
+					l.call "git describe --tags #{@branch.shellescape}"
 				when "match"
-					describe=%x"git describe --tags --exact-match #{@branch.shellescape}".chomp!
+					l.call "git describe --tags --exact-match #{@branch.shellescape}"
 				when "topic"
-					describe=%x"git describe --all #{@branch.shellescape}".chomp!
+					l.call "git describe --all #{@branch.shellescape}"
 				when "branch"
-					describe=%x"git describe --contains --all #{@branch.shellescape}".chomp!
+					l.call "git describe --contains --all #{@branch.shellescape}"
 				when "topic-fb" #try --all, then --contains all
-					describe=%x"git describe --all #{@branch.shellescape}".chomp!
-					describe=%x"git describe --contains --all #{@branch.shellescape}".chomp! if describe.nil? or describe.empty?
+					d1=l.call "git describe --all #{@branch.shellescape}"
+					d1=l.call "git describe --contains --all #{@branch.shellescape}" if d1.nil? or d1.empty?
 				when "branch-fb" #try --contains all, then --all
-					describe=%x"git describe --contains --all #{@branch.shellescape}".chomp!
-					describe=%x"git describe --all #{@branch.shellescape}".chomp! if describe.nil? or describe.empty?
+					d1=l.call "git describe --contains --all #{@branch.shellescape}"
+					d1=l.call "git describe --all #{@branch.shellescape}" if d1.nil? or d1.empty?
 				when "magic"
-					describe1=%x"git describe --contains --all #{@branch.shellescape}".chomp!
-					describe2=%x"git describe --all #{@branch.shellescape}".chomp!
-					describe= describe1.length < describe2.length ? describe1 : describe2
-					describe=describe1 if describe2.empty?
-					describe=describe2 if describe1.empty?
+					d1=l.call "git describe --contains --all #{@branch.shellescape}"
+					d2=l.call %x"git describe --all #{@branch.shellescape}"
+					d= d1.length < d2.length ? d1 : d2
+					d=d1 if d2.empty?
+					d=d2 if d1.empty?
 				when "name"
-					describe=%x"git rev-parse --abbrev-ref #{@branch.shellescape}".chomp!
+					l.call "git rev-parse --abbrev-ref #{@branch.shellescape}"
 				when "full_name"
-					describe=%x"git rev-parse --symbolic-full-name #{@branch.shellescape}".chomp!
+					l.call "git rev-parse --symbolic-full-name #{@branch.shellescape}"
 				when "symbolic"
-					describe=%x"git rev-parse --symbolic #{@branch.shellescape}".chomp!
+					l.call "git rev-parse --symbolic #{@branch.shellescape}"
 				else
-					describe=%x/#{method}/.chomp! unless method.nil? or method.empty?
+					l.call method unless method.nil? or method.empty?
 				end
-				if (describe.nil? or describe.empty?) and always
-					#this is the same fallback as `git describe --always`
-					describe=%x/git rev-parse --short #{@branch.shellescape}/.chomp!
-				end
-				return describe
+			if (describe.nil? or describe.empty?) and always
+				#this is the same fallback as `git describe --always`
+				describe=l.call "git rev-parse --short #{@branch.shellescape}"
 			end
+			return describe
 		end
 
 		def rebase?

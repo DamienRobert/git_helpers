@@ -35,22 +35,22 @@ module GitHelpers
 			@infos=infos!(*args)
 		end
 
-		def run(*args,&b, run_command: :run)
+		def run(*args, run_command: :run, **opts, &b)
 			with_dir do
-				return SH.public_send(run_command, *args,&b)
+				return SH.public_send(run_command, *args, **opts, &b)
 			end
 		end
-		def run_simple(*args,&b)
-			run(*args, &b, run_command: :run_simple)
+		def run_simple(*args,**opts, &b)
+			run(*args, run_command: :run_simple,**opts, &b)
 		end
-		def run_succes(*args,&b)
-			run(*args, &b, run_command: :run_succes)
+		def run_success(*args,**opts, &b)
+			run(*args, run_command: :run_success, **opts, &b)
 		end
 
 		# infos without cache
 		def infos!(quiet: true)
 			infos={}
-			run("git rev-parse --is-inside-git-dir --is-inside-work-tree --is-bare-repository --show-prefix --show-toplevel --show-cdup --git-dir", chomp: :lines, quiet: quiet)
+			status, out, _err=run("git rev-parse --is-inside-git-dir --is-inside-work-tree --is-bare-repository --show-prefix --show-toplevel --show-cdup --git-dir", chomp: :lines, quiet: quiet)
 			infos[:git]=status.success?
 			infos[:in_gitdir]=DR::Bool.to_bool out[0]
 			infos[:in_worktree]=DR::Bool.to_bool out[1]
