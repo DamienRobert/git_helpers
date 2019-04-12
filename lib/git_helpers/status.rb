@@ -103,12 +103,13 @@ module GitHelpers
 						when 'R'; r << :renamed
 						when 'C'; r << :copied
 						when 'U'; r << :unmerged
+						when 'T'; r << :type_change
 						end
 					end
 					infos[:index]=r[0]
 					staged +=1 unless r[0]==:kept or r[0]==:unmerged
 					infos[:worktree]=r[1]
-					changed +=1 unless r[1]==:kept or r[0]==:unmerged
+					changed +=1 unless r[1]==:kept or r[1]==:unmerged
 					conflicts+=1 if r[0]==:unmerged or r[1]==:unmerged
 
 					sub=infos[:sub]
