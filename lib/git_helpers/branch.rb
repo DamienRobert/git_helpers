@@ -40,9 +40,9 @@ module GitHelpers
 			@gitdir.run_success(*args, &b)
 		end
 
-		def infos(*args)
-			return @infos if @infos
-			@infos=infos!(*args)
+		def infos(*args, name: :default)
+			@infos=infos!(*args) unless @infos
+			@infos.merge({name: self.name(method: name)})
 		end
 
 		def infos!(detached: true, name: :default)
@@ -53,12 +53,13 @@ module GitHelpers
 				if !detached #error out
 					raise GitBranchError.new("Detached Branch #{self}")
 				else
-					infos={name: self.name(method: name) }
+					infos={detached: true}
 					return infos
 				end
 			end
 
 			type=infos[:type]
+			infos[:detached]=false
 			if type == :local
 				rebase=gitdir.get_config("branch.#{name}.rebase")
 				rebase = false if rebase.empty?

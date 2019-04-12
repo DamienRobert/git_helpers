@@ -4,7 +4,7 @@ module GitHelpers
 
 		#get the stash commits
 		def stash
-			if run_success("git rev-parse --verify refs/stash")
+			if run_success("git rev-parse --verify refs/stash", quiet: true)
 				return run_simple("git rev-list -g refs/stash")
 			else
 				return nil
@@ -21,31 +21,47 @@ module GitHelpers
 			end
 			gitdir=self.gitdir
 			r=[]
-			r << '.git' if gitdir?
-			r << 'bare' if bare?
+			if bare?
+				r << 'bare' 
+			else
+				r << '.git' if gitdir?
+			end
 
 			return r unless gitdir
 			if (gitdir+"rebase-merge").directory?
+				state=
 				if (gitdir+"rebase-merge/interactive").file?
-					r<<"rb-i " #REBASE-i
+					if (gitdir+"rebase-merge/rewritten").file?
+						"rb-im" #REBASE-im $ rebase -p -i
+					else
+						"rb-i" #REBASE-i
+					end
 				else
-					r<<"rb-m " #REBASE-m
+					"rb-m" #REBASE-m
 				end
-				r<<read_helper[gitdir+"rebase-merge/head-name", ref: true]
-				r<<read_helper[gitdir+"rebase-merge/msgnum"]
-				r<<read_helper[gitdir+"rebase-merge/end"]
+				name=read_helper[gitdir+"rebase-merge/head-name", ref: true]
+				cur=read_helper[gitdir+"rebase-merge/msgnum"]
+				last=read_helper[gitdir+"rebase-merge/end"]
+				extra=[]; extra << name if name;
+				extra << "#{cur}/#{last}" if cur and last
+				state << "(#{extra.join(":")})" if !extra.empty?
+				r << state
 			end
 			if (gitdir+"rebase-apply").directory?
-				r<<read_helper[gitdir+"rebase-apply/next"]
-				r<<read_helper[gitdir+"rebase-apply/last"]
-				if (gitdir+"rebase-apply/rebasing").file?
-					r<<read_helper[gitdir+"rebase-apply/head-name"]
-					r<<"rb" #RB
+				name=read_helper[gitdir+"rebase-apply/head-name", ref: true]
+				cur=read_helper[gitdir+"rebase-apply/next"]
+				last=read_helper[gitdir+"rebase-apply/last"]
+				state = if (gitdir+"rebase-apply/rebasing").file?
+					"rb" #RB
 				elsif (gitdir+"rebase-apply/applying").file?
-					r<<"am" #AM
+					"am" #AM
 				else
-					r<<"am/rb" #AM/REBASE
+					"am/rb" #AM/REBASE (should not happen)
 				end
+				extra=[]; extra << name if name;
+				extra << "#{cur}/#{last}" if cur and last
+				state << "(#{extra.join(":")})" if !extra.empty?
+				r << state
 			end
 			if (gitdir+"MERGE_HEAD").file?
 				r<<"mg" #MERGING
@@ -56,9 +72,11 @@ module GitHelpers
 			if (gitdir+"REVERT_HEAD").file?
 				r<<"rv" #REVERTING
 			end
+			# todo: test for .git/sequencer ?
 			if (gitdir+"BISECT_LOG").file?
 				r<<"bi" #BISECTING
 			end
+			r
 		end
 
 		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, stash: true, detached_name: 'branch-fb', **_opts)
@@ -128,6 +146,7 @@ module GitHelpers
 					l.match(/# branch.head\s+(.*)/) do |m|
 						br_name=m[1]
 						if br_name=="(detached)" and detached_name
+							l_branch[:detached]=true
 							br_name=self.name_branch(method: detached_name, always: true)
 						end
 						l_branch[:head]=br_name
@@ -202,6 +221,7 @@ module GitHelpers
 			branch=status_infos.dig(:branch,:head) || ""
 			ahead=status_infos.dig(:branch,:ahead)||0
 			behind=status_infos.dig(:branch,:behind)||0
+			detached=status_infos.dig(:branch,:detached) || false
 			changed=status_infos[:changed] ||0
 			staged=status_infos[:staged] ||0
 			conflicts=status_infos[:conflicts] ||0
@@ -212,7 +232,7 @@ module GitHelpers
 			#ignored=status_infos[:ignored]
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
 			r="(" <<
-			branch.color(:magenta,:bold) <<
+			"#{detached ? ":" : ""}#{branch}".color(:magenta,:bold) <<
 			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
 			(behind==0 ? "" : "↓"<<behind.to_s ) <<
 			"|" <<
@@ -221,7 +241,7 @@ module GitHelpers
 			(changed==0 ? "" : ("✚"+changed.to_s).color(:blue) ) <<
 			(untracked==0 ? "" : "…" ) <<
 			(clean ? "✔".color(:green,:bold) : "" ) <<
-			(sequencer.empty? ? "" : sequencer.color(:yellow) ) <<
+			(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
 			(stash==0 ? "": " $#{stash}".color(:yellow)) <<
 			")"
 			r
