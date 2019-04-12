@@ -24,4 +24,7 @@ module GitHelpers
 		add_instance_methods.call(mod) if mod.to_s =~ /^GitHelpers::/
 	end
 
+	def self.create(dir='.')
+		GitDir.new(dir)
+	end
 end

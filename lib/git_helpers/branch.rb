@@ -25,9 +25,18 @@ module GitHelpers
 		def shellescape
 			@branch.shellescape
 		end
-		
+
+		def reset!
+			@infos=nil
+		end
+
 		def infos
 			return @infos if @infos
+			@infos=infos!
+		end
+
+		def infos!
+			raise GitBranchError.new("Nil Branch #{self}") if nil?
 			infos=branch_infos
 			raise GitBranchError.new("Bad Branch #{self}") if infos.nil?
 			type=infos[:type]
@@ -37,7 +46,7 @@ module GitHelpers
 				rebase = true if rebase == "true"
 				infos[:rebase]=rebase
 			end
-			@infos=infos
+			infos
 		end
 
 		def format_infos(**opts)
@@ -47,7 +56,7 @@ module GitHelpers
 		def name(method: :default, always: true)
 			method="name" if method == :default
 			@gitdir.with_dir do
-				case method
+				case method.to_s
 				when "sha1"
 					describe=%x"git rev-parse --short #{@branch.shellescape}".chomp!
 				when "describe"
@@ -84,6 +93,7 @@ module GitHelpers
 					describe=%x/#{method}/.chomp! unless method.nil? or method.empty?
 				end
 				if (describe.nil? or describe.empty?) and always
+					#this is the same fallback as `git describe --always`
 					describe=%x/git rev-parse --short #{@branch.shellescape}/.chomp!
 				end
 				return describe

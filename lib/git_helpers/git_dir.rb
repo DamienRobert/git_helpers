@@ -24,21 +24,42 @@ module GitHelpers
 			Dir.chdir(@dir) { yield }
 		end
 
-		def infos(quiet: true)
+		#reset all caches
+		def reset!
+			@infos=nil
+			@head=nil
+		end
+
+		def infos(*args)
 			return @infos if @infos
+			@infos=infos!(*args)
+		end
+
+		def run(*args,&b, run_command: :run)
 			with_dir do
-				status, out, _err=SH.run("git rev-parse --is-inside-git-dir --is-inside-work-tree --is-bare-repository --show-prefix --show-toplevel --show-cdup --git-dir", chomp: :lines, quiet: quiet)
-				@infos={}
-				@infos[:git]=status.success?
-				@infos[:in_gitdir]=DR::Bool.to_bool out[0]
-				@infos[:in_worktree]=DR::Bool.to_bool out[1]
-				@infos[:is_bare]=DR::Bool.to_bool out[2]
-				@infos[:prefix]=out[3]
-				@infos[:toplevel]=out[4]
-				@infos[:cdup]=out[5]
-				@infos[:gitdir]=out[6]
-				@infos
+				return SH.public_send(run_command, *args,&b)
 			end
+		end
+		def run_simple(*args,&b)
+			run(*args, &b, run_command: :run_simple)
+		end
+		def run_succes(*args,&b)
+			run(*args, &b, run_command: :run_succes)
+		end
+
+		# infos without cache
+		def infos!(quiet: true)
+			infos={}
+			run("git rev-parse --is-inside-git-dir --is-inside-work-tree --is-bare-repository --show-prefix --show-toplevel --show-cdup --git-dir", chomp: :lines, quiet: quiet)
+			infos[:git]=status.success?
+			infos[:in_gitdir]=DR::Bool.to_bool out[0]
+			infos[:in_worktree]=DR::Bool.to_bool out[1]
+			infos[:is_bare]=DR::Bool.to_bool out[2]
+			infos[:prefix]=out[3]
+			infos[:toplevel]=out[4]
+			infos[:cdup]=out[5]
+			infos[:gitdir]=out[6]
+			infos
 		end
 
 		#are we a git repo?
@@ -114,15 +135,15 @@ module GitHelpers
 		end
 
 		def head
-			return branch('HEAD')
+			@head || @head=branch('HEAD')
 		end
 
-		#return all branches that have an upstream
-		#if branches=:all look through all branches
-		def all_upstream_branches(branches)
-			#TODO
-			upstreams=%x!git for-each-ref --format='%(upstream:short)' refs/heads/branch/!
-		end
+		## #return all branches that have an upstream
+		## #if branches=:all look through all branches
+		## def all_upstream_branches(branches)
+		## 	#TODO (or use branch_infos)
+		## 	upstreams=%x!git for-each-ref --format='%(upstream:short)' refs/heads/branch/!
+		## end
 
 		def push_default
 			with_dir do
