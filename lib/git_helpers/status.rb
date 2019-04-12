@@ -13,6 +13,13 @@ module GitHelpers
 		end
 
 		def sequencer
+			read_helper=lambda do |file, ref: false; u|
+				if file.readable?
+					u=file.read.chomp
+					u.sub!(/^refs\/heads\//,"") if ref
+				end
+				u
+			end
 			gitdir=self.gitdir
 			r=[]
 			if (gitdir+"rebase-merge").directory?
@@ -21,10 +28,15 @@ module GitHelpers
 				else
 					r<<"rb-m " #REBASE-m
 				end
-				r<<(gitdir+"rebase-merge/head-name").read.chomp.sub(/^refs\/heads\//,"")
+				r<<read_helper[gitdir+"rebase-merge/head-name", ref: true]
+				r<<read_helper[gitdir+"rebase-merge/msgnum"]
+				r<<read_helper[gitdir+"rebase-merge/end"]
 			end
 			if (gitdir+"rebase-apply").directory?
+				r<<read_helper[gitdir+"rebase-apply/next"]
+				r<<read_helper[gitdir+"rebase-apply/last"]
 				if (gitdir+"rebase-apply/rebasing").file?
+					r<<read_helper[gitdir+"rebase-apply/head-name"]
 					r<<"rb" #RB
 				elsif (gitdir+"rebase-apply/applying").file?
 					r<<"am" #AM
