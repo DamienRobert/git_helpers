@@ -3,7 +3,7 @@
 require "git_helpers"
 require 'optparse'
 
-opts={:color => true, :indent => nil, :sequencer => true, :describe => "magic"}
+opts={:color => true}
 optparse = OptionParser.new do |opt|
 	opt.banner= "#{File.basename($0)} [options] git_dirs"
 	opt.on("-p", "--[no-]prompt", "To be used in shell prompt", "This ensure that color ansi sequence are escaped so that they are not counted as text by the shell") do |v|
@@ -21,8 +21,17 @@ optparse = OptionParser.new do |opt|
 	opt.on("--indent spaces", Integer, "Indent to use if showing git status", "2 by default, 0 for empty ARGV") do |v|
 		opts[:indent]=v
 	end
-	opt.on("--describe sha1/describe/contains/branch/match/all/magic", "How to describe a detached HEAD", "'magic' by default") do |v|
-		opts[:describe]=v
+	opt.on("--describe sha1/describe/contains/branch/match/all/magic", "How to describe a detached HEAD", "'branch-fb' by default") do |v|
+		opts[:detached_name]=v
+	end
+	opt.on("--[no-]ignored", "Show ignored files") do |v|
+		opts[:ignored]=v
+	end
+	opt.on("--[no-]untracked", "Show untracked files") do |v|
+		opts[:untracked]=v
+	end
+	opt.on("--[no-]branch", "Get branch infos") do |v|
+		opts[:branch]=v
 	end
 	opt.on("--sm", "Recurse on each submodules") do |v|
 		opts[:submodules]=v
@@ -41,10 +50,11 @@ end
 
 def gs_output(dir=".", **opts)
 	g=GitHelpers::GitDir.new(dir || ".")
-	puts "#{prettify_dir(dir)}#{g.format_status(**opts)}"
+	status={}
+	puts "#{prettify_dir(dir)}#{g.format_status(**opts) {|s| status=s}}"
 	if opts[:status] and g.worktree?
 		g.with_dir do
-			out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short --branch")
+			out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short #{status[:status_options].shelljoin}")
 			out.each_line.each do |line|
 				print " "*(opts[:indent]||0) + line
 			end

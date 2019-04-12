@@ -132,13 +132,15 @@ module GitHelpers
 
 					infos
 				end
-				call="git status --porcelain=v2"
-				call << " --branch" if branch
-				call << " --untracked-files" if untracked
-				call << " --untracked-files=no" if untracked==false
-				call << " --ignored" if ignored
-				call << " --ignored=no" if ignored==false
-				out=run_simple(call, error: :quiet, chomp: :lines)
+				call=%w(git status --porcelain=v2)
+				status_options=[]
+				status_options << "--branch" if branch
+				status_options << "--untracked-files" if untracked
+				status_options << "--untracked-files=no" if untracked==false
+				status_options << "--ignored" if ignored
+				status_options << "--ignored=no" if ignored==false
+				r[:status_options]=status_options
+				out=run_simple((call+status_options).shelljoin, error: :quiet, chomp: :lines)
 				out.each do |l|
 					l.match(/# branch.oid\s+(.*)/) do |m|
 						l_branch[:oid]=m[1]
@@ -219,6 +221,7 @@ module GitHelpers
 				return "" unless git?
 				status_infos=self.status(**opts)
 			end
+			yield status_infos if block_given?
 			branch=status_infos.dig(:branch,:head) || ""
 			ahead=status_infos.dig(:branch,:ahead)||0
 			behind=status_infos.dig(:branch,:behind)||0
