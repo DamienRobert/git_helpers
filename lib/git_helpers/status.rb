@@ -182,24 +182,27 @@ module GitHelpers
 			return r
 		end
 
-		def format_status(status_infos=nil, **opts)
+		def format_status(status_infos=nil, detached_name: 'branch-fb', **opts)
 			if status_infos.nil?
 				if worktree?
-					status_infos=self.status(**opts)
+					status_infos=self.status(detached_name: detached_name, **opts)
 				else
-					return ""
+					branch_infos=head.infos(name: detached_name)
+					status_infos={}
+					branch_infos[:head]=branch_infos[:name]
+					status_infos[:branch]=branch_infos
 				end
 			end
-			branch=status_infos.dig(:branch,:head)
+			branch=status_infos.dig(:branch,:head) || ""
 			ahead=status_infos.dig(:branch,:ahead)||0
 			behind=status_infos.dig(:branch,:behind)||0
-			changed=status_infos[:changed]
-			staged=status_infos[:staged]
-			conflicts=status_infos[:conflicts]
-			untracked=status_infos[:untracked]
+			changed=status_infos[:changed] ||0
+			staged=status_infos[:staged] ||0
+			conflicts=status_infos[:conflicts] ||0
+			untracked=status_infos[:untracked] ||0
 			stash=status_infos[:stash]||0
 			clean=true
-			clean=false if staged != 0 || changed !=0 || untracked !=0 || conflicts !=0
+			clean=false if staged != 0 || changed !=0 || untracked !=0 || conflicts !=0 || !worktree?
 			#ignored=status_infos[:ignored]
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
 			r="(" <<

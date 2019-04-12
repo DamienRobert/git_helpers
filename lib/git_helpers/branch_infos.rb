@@ -29,6 +29,7 @@ module GitHelpers
 				full_name=infos[0]
 				infos=Hash[format.zip(infos)]
 
+				infos[:name]=infos["refname:short"]
 				infos[:head]=!infos["HEAD"].empty?
 
 				type=if full_name.start_with?("refs/heads/")
@@ -104,7 +105,7 @@ module GitHelpers
 				if merged
 					color=:red #not merged
 					[*merged].each do |br|
-						ahead, behind=ahead_behind(i["refname"], br)
+						ahead, _behind=ahead_behind(i["refname"], br)
 						if ahead==0
 							color=:magenta
 							break

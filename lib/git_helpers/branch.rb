@@ -40,15 +40,24 @@ module GitHelpers
 			@gitdir.run_success(*args, &b)
 		end
 
-		def infos
+		def infos(*args)
 			return @infos if @infos
-			@infos=infos!
+			@infos=infos!(*args)
 		end
 
-		def infos!
+		def infos!(detached: true, name: :default)
 			raise GitBranchError.new("Nil Branch #{self}") if nil?
 			infos=branch_infos
-			raise GitBranchError.new("Bad Branch #{self}") if infos.nil?
+
+			if infos.nil?
+				if !detached #error out
+					raise GitBranchError.new("Detached Branch #{self}")
+				else
+					infos={name: self.name(method: name) }
+					return infos
+				end
+			end
+
 			type=infos[:type]
 			if type == :local
 				rebase=gitdir.get_config("branch.#{name}.rebase")
@@ -64,7 +73,7 @@ module GitHelpers
 		end
 
 		def name(method: :default, always: true)
-			l=lambda { |ev| run_simple(ev, chomp: true) }
+			l=lambda { |ev| run_simple(ev, chomp: true, error: :quiet) }
 			method="name" if method == :default
 			describe=
 				case method.to_s
@@ -84,11 +93,11 @@ module GitHelpers
 					l.call "git describe --contains --all #{@branch.shellescape}"
 				when "topic-fb" #try --all, then --contains all
 					d=l.call "git describe --all #{@branch.shellescape}"
-					d=l.call "git describe --contains --all #{@branch.shellescape}" if d1.nil? or d1.empty?
+					d=l.call "git describe --contains --all #{@branch.shellescape}" if d.nil? or d.empty?
 					d
 				when "branch-fb" #try --contains all, then --all
 					d=l.call "git describe --contains --all #{@branch.shellescape}"
-					d=l.call "git describe --all #{@branch.shellescape}" if d1.nil? or d1.empty?
+					d=l.call "git describe --all #{@branch.shellescape}" if d.nil? or d.empty?
 					d
 				when "magic"
 					d1=l.call "git describe --contains --all #{@branch.shellescape}"
