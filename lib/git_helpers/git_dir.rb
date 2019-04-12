@@ -80,19 +80,19 @@ module GitHelpers
 		end
 		#relative path from toplevel to @dir
 		def prefix
-			ShellHelpers::Pathname.new(infos[:prefix])
+			d=infos[:prefix] and ShellHelpers::Pathname.new(d)
 		end
 		#return the absolute path of the toplevel
 		def toplevel
-			ShellHelpers::Pathname.new(infos[:toplevel])
+			d=infos[:toplevel] and ShellHelpers::Pathname.new(d)
 		end
 		#return the relative path from @dir to the toplevel
 		def relative_toplevel
-			ShellHelpers::Pathname.new(infos[:cdup])
+			d=infos[:cdup] and ShellHelpers::Pathname.new(d)
 		end
 		#get path to .git directory (can be relative or absolute)
 		def gitdir
-			ShellHelpers::Pathname.new(infos[:gitdir])
+			d=infos[:gitdir] and ShellHelpers::Pathname.new(d)
 		end
 
 		def all_files
