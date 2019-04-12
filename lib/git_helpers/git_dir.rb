@@ -64,7 +64,7 @@ module GitHelpers
 
 		#are we a git repo?
 		def git?
-			@infos[:git]
+			infos[:git]
 		end
 		#are we in .git/?
 		def gitdir?

@@ -216,6 +216,7 @@ module GitHelpers
 
 		def format_status(status_infos=nil, **opts)
 			if status_infos.nil?
+				return "" unless git?
 				status_infos=self.status(**opts)
 			end
 			branch=status_infos.dig(:branch,:head) || ""
