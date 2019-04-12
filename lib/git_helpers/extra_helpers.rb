@@ -7,18 +7,16 @@ module GitHelpers
 		# Inspired by http://chneukirchen.org/dotfiles/bin/git-attic
 		def removed_files(logopts=nil)
 			removed={}
-			with_dir do
-				commit=nil; date=nil
-				%x/git log #{DefaultLogOptions} --raw --date=short --format="%h %cd" #{logopts}/.each_line do |l|
-					l.chomp!
-					case l
-					when /^[0-9a-f]/
-						commit, date=l.split(' ',2)
-					when /^:/
-						_old_mode, _new_mode, _old_hash, _new_hash, state, filename=l.split(' ',6)
-						#keep earliest removal
-						removed[filename]||={date: date, commit: commit} if state=="D"
-					end
+			commit=nil; date=nil
+			run_simple(%Q/git log #{DefaultLogOptions} --raw --date=short --format="%h %cd" #{logopts}/, chomp: :lines).each do |l|
+				l.chomp!
+				case l
+				when /^[0-9a-f]/
+					commit, date=l.split(' ',2)
+				when /^:/
+					_old_mode, _new_mode, _old_hash, _new_hash, state, filename=l.split(' ',6)
+					#keep earliest removal
+					removed[filename]||={date: date, commit: commit} if state=="D"
 				end
 			end
 			removed
@@ -33,16 +31,14 @@ module GitHelpers
 		#Inspired by https://gist.github.com/7590246.git
 		def commit_children(*commits)
 			r={}
-			with_dir do
-				commits.each do |commit|
-					commit_id=%x/git rev-parse "#{commit}^0"/.chomp #dereference tags
-					%x/git rev-list --all --not #{commit_id}^@ --children/.each_line do |l|
-						if l=~/^#{commit_id}/
-							_commit, *children=l.chomp.split
-							described=children.map {|c| %x/git describe --always #{c}/.chomp}
-							r[commit]||=[]
-							r[commit]+=described
-						end
+			commits.each do |commit|
+				commit_id=run_simple %Q/git rev-parse "#{commit}^0"/, chomp: true #dereference tags
+				run_simple(%Q/git rev-list --all --not #{commit_id}^@ --children/, chomp: :lines).each do |l|
+					if l=~/^#{commit_id}/
+						_commit, *children=l.split
+						described=children.map {|c| run_simple("git describe --always #{c}", chomp: true)}
+						r[commit]||=[]
+						r[commit]+=described
 					end
 				end
 			end
@@ -58,12 +54,10 @@ module GitHelpers
 		#Inspired by the script git-churn, written by Corey Haines # Scriptified by Gary Bernhardt
 		def log_commits_by_files(logopts=nil)
 			r={}
-			with_dir do
-				files=%x/git log #{DefaultLogOptions} --name-only --format="" #{logopts}/.each_line.map {|l| l.chomp!}
-				uniq=files.uniq
-				uniq.each do |file|
-					r[file]=files.count(file)
-				end
+			files=run_simple("git log #{DefaultLogOptions} --name-only --format="" #{logopts}", chomp: :lines)
+			uniq=files.uniq
+			uniq.each do |file|
+				r[file]=files.count(file)
 			end
 			r
 		end

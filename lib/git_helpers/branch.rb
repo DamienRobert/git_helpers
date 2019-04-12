@@ -83,17 +83,20 @@ module GitHelpers
 				when "branch"
 					l.call "git describe --contains --all #{@branch.shellescape}"
 				when "topic-fb" #try --all, then --contains all
-					d1=l.call "git describe --all #{@branch.shellescape}"
-					d1=l.call "git describe --contains --all #{@branch.shellescape}" if d1.nil? or d1.empty?
+					d=l.call "git describe --all #{@branch.shellescape}"
+					d=l.call "git describe --contains --all #{@branch.shellescape}" if d1.nil? or d1.empty?
+					d
 				when "branch-fb" #try --contains all, then --all
-					d1=l.call "git describe --contains --all #{@branch.shellescape}"
-					d1=l.call "git describe --all #{@branch.shellescape}" if d1.nil? or d1.empty?
+					d=l.call "git describe --contains --all #{@branch.shellescape}"
+					d=l.call "git describe --all #{@branch.shellescape}" if d1.nil? or d1.empty?
+					d
 				when "magic"
 					d1=l.call "git describe --contains --all #{@branch.shellescape}"
-					d2=l.call %x"git describe --all #{@branch.shellescape}"
+					d2=l.call "git describe --all #{@branch.shellescape}"
 					d= d1.length < d2.length ? d1 : d2
 					d=d1 if d2.empty?
 					d=d2 if d1.empty?
+					d
 				when "name"
 					l.call "git rev-parse --abbrev-ref #{@branch.shellescape}"
 				when "full_name"

@@ -96,9 +96,7 @@ module GitHelpers
 		end
 
 		def all_files
-			with_dir do
-				%x/git ls-files -z/.split("\0")
-			end
+			run_simple("git ls-files -z").split("\0")
 		end
 
 		def with_toplevel(&b)
@@ -115,23 +113,17 @@ module GitHelpers
 
 		#return a list of submodules
 		def submodules
-			with_dir do
-				return %x/git submodule status/.each_line.map { |l| l.split[1] }
-			end
+			run_simple("git submodule status").each_line.map { |l| l.split[1] }
 		end
 
 		def get_config(*args)
-			with_dir do
-				return %x/git config #{args.shelljoin}/.chomp
-			end
+			run_simple("git config #{args.shelljoin}", chomp: true)
 		end
 
 		def current_branch(always: true)
-			with_dir do
-				branchname= %x/git symbolic-ref -q --short HEAD/.chomp!
-				branchname||= %x/git rev-parse --verify HEAD/.chomp! if always
-				return branch(branchname)
-			end
+			branchname= run_simple("git symbolic-ref -q --short HEAD", chomp: true)
+			branchname||= run_simple("git rev-parse --verify HEAD", chomp: true) if always
+			return branch(branchname)
 		end
 
 		def head
@@ -146,9 +138,7 @@ module GitHelpers
 		## end
 
 		def push_default
-			with_dir do
-				return %x/git config --get remote.pushDefault/.chomp! || "origin"
-			end
+			run_simple("git config --get remote.pushDefault", chomp: true) || "origin"
 		end
 
 		def get_topic_branches(*branches, complete: :local)
