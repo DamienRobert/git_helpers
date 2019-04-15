@@ -30,8 +30,14 @@ optparse = OptionParser.new do |opt|
 	opt.on("--[no-]untracked[=full]", "-u", "Show untracked files") do |v|
 		opts[:untracked]=v
 	end
-	opt.on("--[no-]branch", "Get branch infos") do |v|
+	opt.on("--[no-]branch", "Get branch infos (true by default)") do |v|
 		opts[:branch]=v
+	end
+	opt.on("--[no-]files", "Get files infos (true by default)") do |v|
+		opts[:files]=v
+	end
+	opt.on("--use=branch_name", "Show a different branch than head") do |v|
+		opts[:use]=v
 	end
 	opt.on("--[no-]raw", "Show raw status infos") do |v|
 		opts[:raw]=v
@@ -60,10 +66,12 @@ end
 def gs_output(dir=".", **opts)
 	g=GitHelpers::GitDir.new(dir || ".")
 	status={}
+	arg=opts.delete(:use)
+	args= arg.nil? ? [] : [arg]
 	if opts[:raw]
-		puts "#{prettify_dir(dir)}#{g.status(**opts)}"
+		puts "#{prettify_dir(dir)}#{g.status(*args,**opts)}"
 	else
-		puts "#{prettify_dir(dir)}#{g.format_status(**opts) {|s| status=s}}"
+		puts "#{prettify_dir(dir)}#{g.format_status(*args,**opts) {|s| status=s}}"
 	end
 	if opts[:status] and g.worktree?
 		g.with_dir do
