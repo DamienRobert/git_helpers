@@ -273,7 +273,7 @@ module GitHelpers
 			(untracked==0 ? "" : "…" +
 			 (opts[:untracked].to_s=="full" ? untracked.to_s : "")
 			).color(:blue) <<
-			(ignored==0 ? "" : "i" +
+			(ignored==0 ? "" : "ꜟ" + #❗
 			 (opts[:ignored].to_s=="full" ? ignored.to_s : "")
 			).color(:blue) <<
 			(clean ? "✔".color(:green,:bold) : "" ) <<
