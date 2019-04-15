@@ -161,7 +161,7 @@ module GitHelpers
 		end
 
 		def branch(branch="HEAD")
-			GitBranch.new(branch, dir: @self)
+			GitBranch.new(branch, dir: self)
 		end
 	end
 end
