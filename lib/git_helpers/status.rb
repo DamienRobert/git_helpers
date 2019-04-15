@@ -79,10 +79,11 @@ module GitHelpers
 			r
 		end
 
-		def status(ignored: nil, untracked: nil, branch: true, sequencer: true, stash: true, detached_name: 'branch-fb', **_opts)
+		def status(ignored: nil, untracked: nil, branch: true, branch_infos: true, sequencer: true, stash: true, detached_name: 'branch-fb', **_opts)
 			r={}
+			l_branch={}
+			l_branch[:infos]=head.infos if branch_infos
 			if worktree?
-				l_branch={}
 				paths={}
 				l_untracked=[]
 				l_ignored=[]
@@ -151,6 +152,7 @@ module GitHelpers
 						if br_name=="(detached)" and detached_name
 							l_branch[:detached]=true
 							br_name=self.name_branch(method: detached_name, always: true)
+						else
 						end
 						l_branch[:head]=br_name
 					end
@@ -204,10 +206,19 @@ module GitHelpers
 				r[:untracked]=l_untracked.length
 				r[:ignored]=l_ignored.length
 
-			else
+			else #not in worktree
 				branch_infos=head.infos(name: detached_name)
 				branch_infos[:head]=branch_infos[:name]
 				r[:branch]=branch_infos
+			end
+
+			if branch_infos
+				upstream=r.dig(:branch,:infos,"upstream")
+				push=r.dig(:branch,:infos,"push")
+				if upstream != push
+					r[:push_ahead]=r.dig(:branch,:infos,:push_ahead)
+					r[:push_behind]=r.dig(:branch,:infos,:push_behind)
+				end
 			end
 
 			if stash
@@ -226,6 +237,8 @@ module GitHelpers
 			branch=status_infos.dig(:branch,:head) || ""
 			ahead=status_infos.dig(:branch,:ahead)||0
 			behind=status_infos.dig(:branch,:behind)||0
+			push_ahead=status_infos[:push_ahead]||0
+			push_behind=status_infos[:push_behind]||0
 			detached=status_infos.dig(:branch,:detached) || false
 			changed=status_infos[:changed] ||0
 			staged=status_infos[:staged] ||0
