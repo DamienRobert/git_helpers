@@ -40,6 +40,15 @@ module GitHelpers
 			@gitdir.run_success(*args, &b)
 		end
 
+		def checkout
+			branch=@branch
+			branch.delete_prefix!('refs/heads/') #git checkout refs/heads/master check out in a detached head
+			SH.sh! "git checkout #{branch}"
+		end
+		def checkout_detached
+			SH.sh! "git checkout #{@branch}~0"
+		end
+
 		def infos(*args, name: :default)
 			@infos=infos!(*args) unless @infos
 			@infos.merge({name: self.name(method: name)})
