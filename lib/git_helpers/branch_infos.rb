@@ -136,5 +136,18 @@ module GitHelpers
 		def name_branch(branch='HEAD',**args)
 			self.branch(branch).name(**args)
 		end
+
+		#return all local upstreams of branches, recursively
+		def recursive_upstream(*branches, local: true)
+			require 'tsort'
+			each_node=lambda do |&b| branches.each(&b) end
+			each_child=lambda do |br, &b|
+				upstream=branch(br).upstream(short: false)
+				upstreams=[]
+				upstreams << upstream.to_s unless upstream.nil? or local && upstream.to_s.start_with?("refs/remotes/")
+				upstreams.each(&b)
+			end
+			TSort.tsort(each_node, each_child)
+		end
 	end
 end

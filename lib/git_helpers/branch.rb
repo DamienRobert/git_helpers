@@ -132,13 +132,17 @@ module GitHelpers
 		def push_remote
 			infos["push:remotename"]
 		end
-		def upstream
+		def upstream(short: true)
 			# up=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{u}/.chomp!
-			new_branch(infos["upstream:short"])
+			br= short ? infos["upstream:short"] : infos["upstream"]
+			br=nil if br&.empty?
+			new_branch(br)
 		end
-		def push
+		def push(short: true)
 			# pu=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{push}/.chomp!
-			new_branch(infos["push:short"])
+			br= short ? infos["push:short"] : infos["push"]
+			br=nil if br.empty?
+			new_branch(br)
 		end
 		def hash
 			infos["objectname"]
