@@ -9,7 +9,7 @@ optparse = OptionParser.new do |opt|
 	opt.on("-p", "--[no-]prompt", "To be used in shell prompt", "This ensure that color ansi sequence are escaped so that they are not counted as text by the shell") do |v|
 		opts[:prompt]=v
 	end
-	opt.on("-s", "--[no-]status", "List file", "Print the output of git status additionally of what this program parse") do |v|
+	opt.on("-s", "--[no-]status[=options]", "List file", "Print the output of git status additionally of what this program parse") do |v|
 		opts[:status]=v
 	end
 	opt.on("-c", "--[no-]color", "Color output", "on by default") do |v|
@@ -24,14 +24,17 @@ optparse = OptionParser.new do |opt|
 	opt.on("--describe sha1/describe/contains/branch/match/all/magic", "How to describe a detached HEAD", "'branch-fb' by default") do |v|
 		opts[:detached_name]=v
 	end
-	opt.on("--[no-]ignored", "Show ignored files") do |v|
+	opt.on("--[no-]ignored[=full]", "-i", "Show ignored files") do |v|
 		opts[:ignored]=v
 	end
-	opt.on("--[no-]untracked", "Show untracked files") do |v|
+	opt.on("--[no-]untracked[=full]", "-u", "Show untracked files") do |v|
 		opts[:untracked]=v
 	end
 	opt.on("--[no-]branch", "Get branch infos") do |v|
 		opts[:branch]=v
+	end
+	opt.on("--[no-]raw", "Show raw status infos") do |v|
+		opts[:raw]=v
 	end
 	opt.on("--sm", "Recurse on each submodules") do |v|
 		opts[:submodules]=v
@@ -51,10 +54,20 @@ end
 def gs_output(dir=".", **opts)
 	g=GitHelpers::GitDir.new(dir || ".")
 	status={}
-	puts "#{prettify_dir(dir)}#{g.format_status(**opts) {|s| status=s}}"
+	if opts[:raw]
+		puts "#{prettify_dir(dir)}#{g.status(**opts)}"
+	else
+		puts "#{prettify_dir(dir)}#{g.format_status(**opts) {|s| status=s}}"
+	end
 	if opts[:status] and g.worktree?
 		g.with_dir do
-			out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short #{status[:status_options].shelljoin}")
+			options=opts[:status]
+			if options.is_a?(String)
+				options=options.split(',')
+			else
+				options=[]
+			end
+			out=SH.run_simple("git #{opts[:color] ? "-c color.ui=always" : ""} status --short #{(status[:status_options]+options).shelljoin}")
 			out.each_line.each do |line|
 				print " "*(opts[:indent]||0) + line
 			end

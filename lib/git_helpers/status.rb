@@ -231,20 +231,27 @@ module GitHelpers
 			staged=status_infos[:staged] ||0
 			conflicts=status_infos[:conflicts] ||0
 			untracked=status_infos[:untracked] ||0
+			ignored=status_infos[:ignored] || 0
 			stash=status_infos[:stash]||0
 			clean=true
 			clean=false if staged != 0 || changed !=0 || untracked !=0 || conflicts !=0 || !worktree?
-			#ignored=status_infos[:ignored]
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
 			r="(" <<
 			"#{detached ? ":" : ""}#{branch}".color(:magenta,:bold) <<
 			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
 			(behind==0 ? "" : "↓"<<behind.to_s ) <<
+			(push_ahead==0 ? "" : "⇡"<<push_ahead.to_s ) <<
+			(push_behind==0 ? "" : "⇣"<<push_behind.to_s ) <<
 			"|" <<
 			(staged==0 ? "" : ("●"+staged.to_s).color(:red) ) <<
 			(conflicts==0 ? "" : ("✖"+conflicts.to_s).color(:red) ) <<
 			(changed==0 ? "" : ("✚"+changed.to_s).color(:blue) ) <<
-			(untracked==0 ? "" : "…" ) <<
+			(untracked==0 ? "" : "…" +
+			 (opts[:untracked].to_s=="full" ? untracked.to_s : "")
+			) <<
+			(ignored==0 ? "" : "i" +
+			 (opts[:ignored].to_s=="full" ? ignored.to_s : "")
+			) <<
 			(clean ? "✔".color(:green,:bold) : "" ) <<
 			(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
 			(stash==0 ? "": " $#{stash}".color(:yellow)) <<
