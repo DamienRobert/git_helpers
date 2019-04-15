@@ -39,11 +39,17 @@ optparse = OptionParser.new do |opt|
 	opt.on("--sm", "Recurse on each submodules") do |v|
 		opts[:submodules]=v
 	end
+	opt.on("--[no-]debug", "Debug git calls") do |v|
+		opts[:debug]=v
+	end
 end
 optparse.parse!
 
 if !opts[:color]
 	SimpleColor.enabled=false
+end
+if opts[:debug]
+	SH.debug
 end
 
 def prettify_dir(dir)

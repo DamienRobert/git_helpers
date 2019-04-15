@@ -54,7 +54,7 @@ module GitHelpers
 			@infos.merge({name: self.name(method: name)})
 		end
 
-		def infos!(detached: true, name: :default)
+		def infos!(detached: true)
 			raise GitBranchError.new("Nil Branch #{self}") if nil?
 			infos=branch_infos
 
@@ -70,7 +70,7 @@ module GitHelpers
 			type=infos[:type]
 			infos[:detached]=false
 			if type == :local
-				rebase=gitdir.get_config("branch.#{name}.rebase")
+				rebase=gitdir.get_config("branch.#{infos["refname:short"]}.rebase")
 				rebase = false if rebase.empty?
 				rebase = true if rebase == "true"
 				infos[:rebase]=rebase

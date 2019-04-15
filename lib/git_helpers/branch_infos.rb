@@ -3,7 +3,7 @@ module GitHelpers
 	module GitBranchInfos
 		def ahead_behind(br1, br2)
 			with_dir do
-				out=SH::Run.run_simple("git rev-list --left-right --count #{br1.shellescape}...#{br2.shellescape}", error: :quiet)
+				out=run_simple("git rev-list --left-right --count #{br1.shellescape}...#{br2.shellescape}", error: :quiet)
 				out.match(/(\d+)\s+(\d+)/) do |m|
 					return m[1].to_i, m[2].to_i #br1 is ahead by m[1], behind by m[2] from br2
 				end
@@ -23,7 +23,7 @@ module GitHelpers
 			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:track push:remotename push:remoteref HEAD symref)
 			#Note push:remoteref is buggy (always empty)
 			#and push:track is upstream:track
-			out=SH::Run.run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(';')}, ' #{query.shelljoin}", chomp: :lines)
+			out=run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(';')}' #{query.shelljoin}", chomp: :lines)
 			out.each do |l|
 				infos=l.split(';')
 				full_name=infos[0]

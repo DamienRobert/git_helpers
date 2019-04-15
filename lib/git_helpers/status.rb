@@ -79,18 +79,20 @@ module GitHelpers
 			r
 		end
 
-		def status(ignored: nil, untracked: nil, branch: true, branch_infos: true, sequencer: true, stash: true, detached_name: 'branch-fb', **_opts)
-			r={}
+		def status(ignored: nil, untracked: nil, branch: :full, sequencer: true, stash: true, detached_name: 'branch-fb', **_opts)
 			l_branch={}
-			l_branch[:infos]=head.infos if branch_infos
+			l_branch=head.infos(name: detached_name) if branch == :full
+			r={branch: l_branch}
+
 			if worktree?
 				paths={}
 				l_untracked=[]
 				l_ignored=[]
-				r.merge!({paths: paths, branch: l_branch, untracked: l_untracked, ignored: l_ignored})
+				r.merge!({paths: paths, untracked: l_untracked, ignored: l_ignored})
 
 				staged=0
 				changed=0
+				subchanged=0
 				conflicts=0
 
 				complete_infos=lambda do |infos; r|
@@ -110,8 +112,6 @@ module GitHelpers
 					infos[:index]=r[0]
 					staged +=1 unless r[0]==:kept or r[0]==:unmerged
 					infos[:worktree]=r[1]
-					changed +=1 unless r[1]==:kept or r[1]==:unmerged
-					conflicts+=1 if r[0]==:unmerged or r[1]==:unmerged
 
 					sub=infos[:sub]
 					if sub[0]=="N"
@@ -122,6 +122,12 @@ module GitHelpers
 						infos[:sub_modified]=sub[2]=="M"
 						infos[:sub_untracked]=sub[3]=="U"
 					end
+
+					unless r[1]==:kept or r[1]==:unmerged
+						changed +=1
+						subchanged +=1 if infos[:submodule]
+					end
+					conflicts+=1 if r[0]==:unmerged or r[1]==:unmerged
 
 					if (xscore=infos[:xscore])
 						if xscore[0]=="R"
@@ -136,12 +142,12 @@ module GitHelpers
 				end
 				call=%w(git status --porcelain=v2)
 				status_options=[]
-				status_options << "--branch" if branch
+				status_options << "--branch" if branch and branch != :full
 				status_options << "--untracked-files" if untracked
 				status_options << "--untracked-files=no" if untracked==false
 				status_options << "--ignored" if ignored
 				status_options << "--ignored=no" if ignored==false
-				r[:status_options]=status_options
+				r[:status_options]=status_options + (branch == :full ? ['--branch'] : [])
 				out=run_simple((call+status_options).shelljoin, error: :quiet, chomp: :lines)
 				out.each do |l|
 					l.match(/# branch.oid\s+(.*)/) do |m|
@@ -154,14 +160,14 @@ module GitHelpers
 							br_name=self.name_branch(method: detached_name, always: true)
 						else
 						end
-						l_branch[:head]=br_name
+						l_branch[:name]=br_name
 					end
 					l.match(/# branch.upstream\s+(.*)/) do |m|
 						l_branch[:upstream]=m[1]
 					end
 					l.match(/# branch.ab\s+\+(\d*)\s+-(\d*)/) do |m|
-						l_branch[:ahead]=m[1].to_i
-						l_branch[:behind]=m[2].to_i
+						l_branch[:upstream_ahead]=m[1].to_i
+						l_branch[:upstream_behind]=m[2].to_i
 					end
 
 					l.match(/1 (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (\S*) (.*)/) do |m|
@@ -202,22 +208,18 @@ module GitHelpers
 				end
 				r[:conflicts]=conflicts
 				r[:staged]=staged
-				r[:changed]=changed
+				r[:changed]=changed #include subchanged
+				r[:subchanged]=subchanged
 				r[:untracked]=l_untracked.length
 				r[:ignored]=l_ignored.length
-
-			else #not in worktree
-				branch_infos=head.infos(name: detached_name)
-				branch_infos[:head]=branch_infos[:name]
-				r[:branch]=branch_infos
 			end
 
-			if branch_infos
-				upstream=r.dig(:branch,:infos,"upstream")
-				push=r.dig(:branch,:infos,"push")
+			if branch
+				upstream=r.dig(:branch,:upstream)
+				push=r.dig(:branch,:push)
 				if upstream != push
-					r[:push_ahead]=r.dig(:branch,:infos,:push_ahead)
-					r[:push_behind]=r.dig(:branch,:infos,:push_behind)
+					r[:push_ahead]=r.dig(:branch,:push_ahead)
+					r[:push_behind]=r.dig(:branch,:push_behind)
 				end
 			end
 
@@ -228,19 +230,24 @@ module GitHelpers
 			return r
 		end
 
-		def format_status(status_infos=nil, **opts)
+		#changed_submodule: do we show changed submodule apart?
+		def format_status(status_infos=nil, changed_submodule: true, **opts)
 			if status_infos.nil?
 				return "" unless git?
 				status_infos=self.status(**opts)
 			end
 			yield status_infos if block_given?
-			branch=status_infos.dig(:branch,:head) || ""
-			ahead=status_infos.dig(:branch,:ahead)||0
-			behind=status_infos.dig(:branch,:behind)||0
+			branch=status_infos.dig(:branch,:name) || ""
+			ahead=status_infos.dig(:branch,:upstream_ahead)||0
+			behind=status_infos.dig(:branch,:upstream_behind)||0
 			push_ahead=status_infos[:push_ahead]||0
 			push_behind=status_infos[:push_behind]||0
 			detached=status_infos.dig(:branch,:detached) || false
 			changed=status_infos[:changed] ||0
+			if changed_submodule
+				subchanged=status_infos[:subchanged] ||0
+				changed=changed-subchanged
+			end
 			staged=status_infos[:staged] ||0
 			conflicts=status_infos[:conflicts] ||0
 			untracked=status_infos[:untracked] ||0
@@ -256,15 +263,16 @@ module GitHelpers
 			(push_ahead==0 ? "" : "⇡"<<push_ahead.to_s ) <<
 			(push_behind==0 ? "" : "⇣"<<push_behind.to_s ) <<
 			"|" <<
-			(staged==0 ? "" : ("●"+staged.to_s).color(:red) ) <<
-			(conflicts==0 ? "" : ("✖"+conflicts.to_s).color(:red) ) <<
-			(changed==0 ? "" : ("✚"+changed.to_s).color(:blue) ) <<
+			(staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
+			(conflicts==0 ? "" : "✖"+conflicts.to_s).color(:red) <<
+			(changed==0 ? "" : "✚"+changed.to_s).color(:blue)  <<
+			(subchanged==0 ? "" : ("✦"+subchanged.to_s).color(:blue) ) <<
 			(untracked==0 ? "" : "…" +
 			 (opts[:untracked].to_s=="full" ? untracked.to_s : "")
-			) <<
+			).color(:blue) <<
 			(ignored==0 ? "" : "i" +
 			 (opts[:ignored].to_s=="full" ? ignored.to_s : "")
-			) <<
+			).color(:blue) <<
 			(clean ? "✔".color(:green,:bold) : "" ) <<
 			(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
 			(stash==0 ? "": " $#{stash}".color(:yellow)) <<

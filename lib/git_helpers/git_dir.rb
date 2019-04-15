@@ -36,6 +36,7 @@ module GitHelpers
 		end
 
 		def run(*args, run_command: :run, **opts, &b)
+			SH.logger.debug("run #{args} (#{opts})")
 			with_dir do
 				return SH.public_send(run_command, *args, **opts, &b)
 			end
