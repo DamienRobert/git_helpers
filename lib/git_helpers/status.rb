@@ -91,6 +91,8 @@ module GitHelpers
 				r.merge!({paths: paths, files_untracked: l_untracked, files_ignored: l_ignored})
 
 				staged=0
+				staged_sub=0
+				staged_nonsub=0
 				changed=0
 				changed_nonsub=0
 				changed_sub=0
@@ -113,7 +115,6 @@ module GitHelpers
 						end
 					end
 					infos[:index]=r[0]
-					staged +=1 unless r[0]==:kept or r[0]==:unmerged
 					infos[:worktree]=r[1]
 
 					sub=infos[:sub]
@@ -126,10 +127,14 @@ module GitHelpers
 						infos[:sub_untracked]=sub[3]=="U"
 					end
 
+					unless r[0]==:kept or r[0]==:unmerged
+						staged +=1
+						infos[:submodule] ? staged_sub +=1 : staged_nonsub +=1
+					end
+
 					unless r[1]==:kept or r[1]==:unmerged
 						changed +=1
-						changed_nonsub += 1 unless infos[:submodule]
-						changed_sub +=1 if infos[:submodule]
+						infos[:submodule] ? changed_sub +=1 : changed_nonsub +=1
 						subchanged +=1 if infos[:submodule] and (infos[:sub_modified]||infos[:sub_untracked])
 						subcommited +=1 if infos[:submodule] and infos[:sub_commited]
 					end
@@ -216,6 +221,8 @@ module GitHelpers
 					end
 					r[:conflicts]=conflicts
 					r[:staged]=staged
+					r[:staged_nonsub]=staged_nonsub
+					r[:staged_sub]=staged_sub
 					r[:changed]=changed
 					r[:changed_nonsub]=changed_nonsub
 					r[:changed_sub]=changed_sub
@@ -281,8 +288,8 @@ module GitHelpers
 			(staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
 			(conflicts==0 ? "" : "✖"+conflicts.to_s).color(:red) <<
 			(changed==0 ? "" : "✚"+changed.to_s).color(:blue)  <<
-			(subcommited==0 ? "" : ("🟄"+subcommited.to_s).color(:blue) ) <<
-			(subchanged==0 ? "" : ("✦"+subchanged.to_s).color(:blue) ) <<
+			(subcommited==0 ? "" : ("✦"+subcommited.to_s).color(:blue) ) <<
+			(subchanged==0 ? "" : ("✧"+subchanged.to_s).color(:blue) ) <<
 			(untracked==0 ? "" : "…" +
 			 (opts[:untracked].to_s=="full" ? untracked.to_s : "")
 			).color(:blue) <<
