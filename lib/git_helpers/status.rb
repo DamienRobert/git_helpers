@@ -92,7 +92,10 @@ module GitHelpers
 
 				staged=0
 				changed=0
+				changed_nonsub=0
+				changed_sub=0
 				subchanged=0
+				subcommited=0
 				conflicts=0
 
 				complete_infos=lambda do |infos; r|
@@ -125,7 +128,10 @@ module GitHelpers
 
 					unless r[1]==:kept or r[1]==:unmerged
 						changed +=1
-						subchanged +=1 if infos[:submodule]
+						changed_nonsub += 1 unless infos[:submodule]
+						changed_sub +=1 if infos[:submodule]
+						subchanged +=1 if infos[:submodule] and (infos[:sub_modified]||infos[:sub_untracked])
+						subcommited +=1 if infos[:submodule] and infos[:sub_commited]
 					end
 					conflicts+=1 if r[0]==:unmerged or r[1]==:unmerged
 
@@ -210,8 +216,11 @@ module GitHelpers
 					end
 					r[:conflicts]=conflicts
 					r[:staged]=staged
-					r[:changed]=changed #include subchanged
+					r[:changed]=changed
+					r[:changed_nonsub]=changed_nonsub
+					r[:changed_sub]=changed_sub
 					r[:subchanged]=subchanged
+					r[:subcommited]=subcommited
 					r[:untracked]=l_untracked.length
 					r[:ignored]=l_ignored.length
 				end
@@ -246,10 +255,13 @@ module GitHelpers
 			push_ahead=status_infos[:push_ahead]||0
 			push_behind=status_infos[:push_behind]||0
 			detached=status_infos.dig(:branch,:detached) || false
-			changed=status_infos[:changed] ||0
+			allchanged=status_infos[:changed] ||0
 			if changed_submodule
+				changed=status_infos[:changed_nonsub] ||0
 				subchanged=status_infos[:subchanged] ||0
-				changed=changed-subchanged
+				subcommited=status_infos[:subcommited] ||0
+			else
+				changed=status_infos[:changed] ||0
 			end
 			staged=status_infos[:staged] ||0
 			conflicts=status_infos[:conflicts] ||0
@@ -257,7 +269,7 @@ module GitHelpers
 			ignored=status_infos[:ignored] || 0
 			stash=status_infos[:stash]||0
 			clean=true
-			clean=false if staged != 0 || changed !=0 || untracked !=0 || conflicts !=0 || !worktree? || opts[:files]==false
+			clean=false if staged != 0 || allchanged !=0 || untracked !=0 || conflicts !=0 || !worktree? || opts[:files]==false
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
 			r="(" <<
 			"#{detached ? ":" : ""}#{branch}".color(:magenta,:bold) <<
@@ -269,6 +281,7 @@ module GitHelpers
 			(staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
 			(conflicts==0 ? "" : "✖"+conflicts.to_s).color(:red) <<
 			(changed==0 ? "" : "✚"+changed.to_s).color(:blue)  <<
+			(subcommited==0 ? "" : ("🟄"+subcommited.to_s).color(:blue) ) <<
 			(subchanged==0 ? "" : ("✦"+subchanged.to_s).color(:blue) ) <<
 			(untracked==0 ? "" : "…" +
 			 (opts[:untracked].to_s=="full" ? untracked.to_s : "")
