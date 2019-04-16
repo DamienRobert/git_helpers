@@ -49,9 +49,9 @@ module GitHelpers
 			SH.sh! "git checkout #{@branch}~0"
 		end
 
-		def infos(*args, name: :default)
+		def infos(*args, name: :default, detached_name: :detached_default)
 			@infos=infos!(*args) unless @infos
-			@infos.merge({name: self.name(method: name)})
+			@infos.merge({name: self.name(method: name, detached_method: :detached_default)})
 		end
 
 		def infos!(detached: true)
@@ -82,9 +82,10 @@ module GitHelpers
 			@gitdir.format_branch_infos([infos], **opts)
 		end
 
-		def name(method: :default, always: true)
+		def name(method: :default, detached_method: :detached_default, always: true)
 			l=lambda { |ev| run_simple(ev, chomp: true, error: :quiet) }
 			method="name" if method == :default
+			method="branch-fb" if method == :detached_default
 			describe=
 				case method.to_s
 				when "sha1"
@@ -125,6 +126,9 @@ module GitHelpers
 				else
 					l.call method unless method.nil? or method.empty?
 				end
+			if describe == "HEAD" and detached_method
+				describe=self.name(method: detached_method, detached_method: nil, always: always)
+			end
 			if (describe.nil? or describe.empty?) and always
 				#this is the same fallback as `git describe --always`
 				describe=l.call "git rev-parse --short #{@branch.shellescape}"
