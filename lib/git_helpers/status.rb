@@ -26,6 +26,11 @@ module GitHelpers
 			else
 				r << '.git' if gitdir?
 			end
+			if gitdir.to_s =~ /\/.git\/modules\//
+				r << 'sub'
+			elsif gitdir.to_s =~ /\/.git\/worktrees\//
+				r << 'wt'
+			end
 
 			return r unless gitdir
 			if (gitdir+"rebase-merge").directory?
@@ -37,7 +42,7 @@ module GitHelpers
 						"rb-i" #REBASE-i
 					end
 				else
-					"rb-m" #REBASE-m
+					"rb-m" #REBASE-m $ rebase -p
 				end
 				name=read_helper[gitdir+"rebase-merge/head-name", ref: true]
 				cur=read_helper[gitdir+"rebase-merge/msgnum"]
@@ -72,7 +77,9 @@ module GitHelpers
 			if (gitdir+"REVERT_HEAD").file?
 				r<<"rv" #REVERTING
 			end
-			# todo: test for .git/sequencer ?
+			if (gitdir+"sequencer").directory?
+				r<<"seq" #when we have a multiple commits cherry-pick or revert
+			end
 			if (gitdir+"BISECT_LOG").file?
 				r<<"bi" #BISECTING
 			end
