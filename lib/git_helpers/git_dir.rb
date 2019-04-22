@@ -123,7 +123,7 @@ module GitHelpers
 
 		def current_branch(always: true)
 			branchname= run_simple("git symbolic-ref -q --short HEAD", chomp: true)
-			branchname||= run_simple("git rev-parse --verify HEAD", chomp: true) if always
+			branchname= run_simple("git rev-parse --short --verify HEAD", chomp: true) if always and branchname.empty?
 			return branch(branchname)
 		end
 
