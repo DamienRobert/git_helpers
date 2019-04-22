@@ -82,10 +82,6 @@ module GitHelpers
 			@gitdir.format_branch_infos([infos], **opts)
 		end
 
-		def full_name(always: false)
-			name(method: :full_name, detached_method: nil, always: always, shorten: false)
-		end
-
 		def name(method: :default, detached_method: :detached_default, always: true, shorten: true, highlight_detached: ':')
 			l=lambda { |ev| run_simple(ev, chomp: true, error: :quiet) }
 			method="name" if method == :default
@@ -148,6 +144,11 @@ module GitHelpers
 			return describe
 		end
 
+		def full_name(method: :full_name, detached_method: nil, always: false, shorten: false, **opts)
+			name(method: method, detached_method: detached_method, always: always, shorten: shorten, **opts)
+		end
+
+
 		def rebase?
 			infos[:rebase]
 		end
@@ -186,10 +187,6 @@ module GitHelpers
 		end
 
 		def branch_infos
-			branch=@branch
-			branch=full_name if branch == "HEAD"
-			p branch
-			p @gitdir.branch_infos(branch)
 			@gitdir.branch_infos(branch).values.first
 		end
 

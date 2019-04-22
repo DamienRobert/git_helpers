@@ -15,7 +15,7 @@ module GitHelpers
 			query = []
 			query << "--merged=#{merged.shellescape}" if merged
 			query << "--no_merged=#{no_merged.shellescape}" if no_merged
-			query += branches.map {|b| name_branch(b, method: 'full_name')}
+			query += branches.map {|b| name_branch(b)}
 			query << 'refs/heads' if local
 			query << 'refs/remotes' if remote
 			query << 'refs/tags' if tags
@@ -142,7 +142,7 @@ module GitHelpers
 		end
 
 		def name_branch(branch='HEAD',**args)
-			self.branch(branch).name(**args)
+			self.branch(branch).full_name(**args)
 		end
 
 		#return all local upstreams of branches, recursively

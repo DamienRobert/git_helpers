@@ -256,7 +256,6 @@ module GitHelpers
 				status_infos=self.status(br, **opts)
 			end
 			yield status_infos if block_given?
-			p status_infos
 			branch=status_infos.dig(:branch,:name) || ""
 			ahead=status_infos.dig(:branch,:upstream_ahead)||0
 			behind=status_infos.dig(:branch,:upstream_behind)||0
