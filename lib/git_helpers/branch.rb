@@ -88,6 +88,7 @@ module GitHelpers
 			#method="branch-fb" if method == :detached_default
 			#method="short" if method == :detached_default
 			method="match" if method == :detached_default
+			method="branch-fb" if method == :detached_infos
 			describe=
 				case method.to_s
 				when "sha1"

@@ -86,7 +86,7 @@ module GitHelpers
 			r
 		end
 
-		def status(br='HEAD', ignored: nil, untracked: nil, branch: :full, files: true, sequencer: true, stash: true, detached_name: :'branch-fb', **_opts)
+		def status(br='HEAD', ignored: nil, untracked: nil, branch: :full, files: true, sequencer: true, stash: true, detached_name: :detached_infos, **_opts)
 			l_branch={}
 			l_branch=self.branch(br).infos(detached_name: detached_name) if branch == :full
 			r={branch: l_branch}
