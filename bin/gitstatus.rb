@@ -36,7 +36,7 @@ optparse = OptionParser.new do |opt|
 	opt.on("--[no-]files", "Get files infos (true by default)") do |v|
 		opts[:files]=v
 	end
-	opt.on("--use=branch_name", "Show a different branch than head") do |v|
+	opt.on("--use=branch_name", "Show a different branch than HEAD") do |v|
 		opts[:use]=v
 	end
 	opt.on("--[no-]raw", "Show raw status infos") do |v|

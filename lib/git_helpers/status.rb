@@ -11,7 +11,7 @@ module GitHelpers
 			end
 		end
 
-		def sequencer
+		def sequencer(extra_infos=true)
 			read_helper=lambda do |file, ref: false; u|
 				if file.readable?
 					u=file.read.chomp
@@ -22,6 +22,7 @@ module GitHelpers
 			rb_helper=lambda do |dir; name, onto, rbname, extra|
 				name=read_helper[gitdir+"#{dir}/head-name", ref: true]
 				onto=read_helper[gitdir+"#{dir}/onto", ref: true]
+				onto=branch(onto).name(highlight_detached: "") if onto
 				rbname=""
 				rbname << name if name
 				rbname << "->#{onto}" if onto
@@ -40,18 +41,31 @@ module GitHelpers
 					""
 				end
 			end
+			r=[]; r_extra=[]
+			rb_handler=lambda do |state, mode; extra|
+				if mode == :rbi
+					extra = rb_helper.call("rebase-merge") if extra_infos
+				elsif mode==:am
+					extra = rb_helper.call("rebase-apply") if extra_infos
+				end
+				r << "#{state}"
+				r_extra << "#{state}#{extra}"
+			end
+			append=lambda do |seq|
+				r << seq
+				r_extra << seq if extra_infos
+			end
 
 			gitdir=self.gitdir
-			r=[]
 			if bare?
-				r << 'bare'
+				append.call 'bare'
 			else
-				r << '.git' if gitdir?
+				append.call '.git' if gitdir?
 			end
 			if gitdir.to_s =~ /\/.git\/modules\//
-				r << 'sub'
+				append.call 'sub'
 			elsif gitdir.to_s =~ /\/.git\/worktrees\//
-				r << 'wt'
+				append.call 'wt'
 			end
 
 			return r unless gitdir
@@ -66,36 +80,42 @@ module GitHelpers
 				else
 					"rb-m" #REBASE-m $ rebase -p
 				end
-				extra = rb_helper.call("rebase-merge")
-				r << "#{state}#{extra}"
+				rb_handler.call(state, :rbi)
 			end
 			if (gitdir+"rebase-apply").directory?
-				state = if (gitdir+"rebase-apply/rebasing").file?
+				state = 
+				if (gitdir+"rebase-apply/rebasing").file?
 					"rb" #RB
 				elsif (gitdir+"rebase-apply/applying").file?
 					"am" #AM
 				else
 					"am/rb" #AM/REBASE (should not happen)
 				end
-				extra = rb_helper.call("rebase-apply")
-				r << "#{state}#{extra}"
+				rb_handler.call(state, :am)
 			end
 			if (gitdir+"MERGE_HEAD").file?
-				r<<"mg" #MERGING
+				append.call "mg" #MERGING
 			end
 			if (gitdir+"CHERRY_PICK_HEAD").file?
-				r<<"ch" #CHERRY-PICKING
+				append.call "ch" #CHERRY-PICKING
 			end
 			if (gitdir+"REVERT_HEAD").file?
-				r<<"rv" #REVERTING
+				append.call "rv" #REVERTING
 			end
 			if (gitdir+"sequencer").directory?
-				r<<"seq" #when we have a multiple commits cherry-pick or revert
+				append.call "seq" #when we have a multiple commits cherry-pick or revert
 			end
 			if (gitdir+"BISECT_LOG").file?
-				r<<"bi" #BISECTING
+				append.call "bi" #BISECTING
 			end
-			r
+
+			if extra_infos == :both
+				return r, r_extra
+			elsif extra_infos
+				r_extra
+			else
+				r
+			end
 		end
 
 		def status(br='HEAD', ignored: nil, untracked: nil, branch: :full, files: true, sequencer: true, stash: true, detached_name: :detached_infos, **_opts)
@@ -253,8 +273,8 @@ module GitHelpers
 			end
 
 			if branch
-				upstream=r.dig(:branch,:upstream)
-				push=r.dig(:branch,:push)
+				upstream=r.dig(:branch,'upstream')
+				push=r.dig(:branch,'push')
 				if upstream != push
 					r[:push_ahead]=r.dig(:branch,:push_ahead)
 					r[:push_behind]=r.dig(:branch,:push_behind)
@@ -297,14 +317,15 @@ module GitHelpers
 			clean=true
 			clean=false if staged != 0 || allchanged !=0 || untracked !=0 || conflicts !=0 || !worktree? || opts[:files]==false
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
-			r="(" << # "#{detached ? ":" : ""} # the ':' prefix is done by name now
-			"#{branch}".color(:magenta,:bold) <<
+
+			# "#{detached ? ":" : ""} # the ':' prefix is done by name now
+			left= "#{branch}".color(:magenta,:bold) <<
 			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
 			(behind==0 ? "" : "↓"<<behind.to_s ) <<
 			(push_ahead==0 ? "" : "⇡"<<push_ahead.to_s ) <<
-			(push_behind==0 ? "" : "⇣"<<push_behind.to_s ) <<
-			"|" <<
-			(staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
+			(push_behind==0 ? "" : "⇣"<<push_behind.to_s )
+
+			right= (staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
 			(conflicts==0 ? "" : "✖"+conflicts.to_s).color(:red) <<
 			(changed==0 ? "" : "✚"+changed.to_s).color(:blue)  <<
 			(subcommited==0 ? "" : ("✦"+subcommited.to_s).color(:blue) ) <<
@@ -317,8 +338,10 @@ module GitHelpers
 			).color(:blue) <<
 			(clean ? "✔".color(:green,:bold) : "" ) <<
 			(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
-			(stash==0 ? "": " $#{stash}".color(:yellow)) <<
-			")"
+			(stash==0 ? "": " $#{stash}".color(:yellow))
+
+			r="(" << left <<
+				(right.empty? ? "" : "|" ) << right << ")"
 			r
 		end
 	end
