@@ -82,8 +82,20 @@ module GitHelpers
 			@gitdir.format_branch_infos([infos], **opts)
 		end
 
-		def name(method: :default, detached_method: :detached_default, always: true, shorten: true, highlight_detached: ':')
+		def name(method: :default, detached_method: [:detached_default, :short], shorten: true, highlight_detached: ':', expand_head: true)
 			l=lambda { |ev| run_simple(ev, chomp: true, error: :quiet) }
+			methods=[*method]
+			detached_methods=[*detached_method]
+			method=methods.shift
+			if method.nil? 
+				if !detached_methods.empty?
+					describe=self.name(method: detached_methods, detached_method: [], shorten: shorten, highlight_detached: highlight_detached, expand_head: expand_head)
+					describe="#{highlight_detached}#{describe}" unless describe.empty?
+					return describe
+				else
+					return nil
+				end
+			end
 			method="name" if method == :default
 			#method="branch-fb" if method == :detached_default
 			#method="short" if method == :detached_default
@@ -135,14 +147,8 @@ module GitHelpers
 				else
 					l.call method unless method.nil? or method.empty?
 				end
-			if describe == "HEAD" and detached_method
-				describe=self.name(method: detached_method, detached_method: nil, always: always, highlight_detached: nil)
-				describe="#{highlight_detached}#{describe}"
-			end
-			if (describe.nil? or describe.empty?) and always
-				#this is the same fallback as `git describe --always`
-				describe=l.call "git rev-parse --short #{@branch.shellescape}"
-				describe="#{highlight_detached}#{describe}"
+			if describe.nil? or describe.empty? or describe == "HEAD" && expand_head
+				describe=self.name(method: methods, detached_method: detached_method, shorten: shorten, highlight_detached: highlight_detached, expand_head: expand_head)
 			end
 			if shorten
 				describe.delete_prefix!("refs/")
@@ -151,8 +157,8 @@ module GitHelpers
 			return describe
 		end
 
-		def full_name(method: :full_name, detached_method: nil, always: false, shorten: false, **opts)
-			name(method: method, detached_method: detached_method, always: always, shorten: shorten, **opts)
+		def full_name(method: :full_name, detached_method: nil, shorten: false, **opts)
+			name(method: method, detached_method: detached_method, shorten: shorten, **opts)
 		end
 
 

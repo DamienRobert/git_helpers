@@ -70,7 +70,6 @@ module GitHelpers
 				r << "#{state}#{extra}"
 			end
 			if (gitdir+"rebase-apply").directory?
-				name=read_helper[gitdir+"rebase-apply/head-name", ref: true]
 				state = if (gitdir+"rebase-apply/rebasing").file?
 					"rb" #RB
 				elsif (gitdir+"rebase-apply/applying").file?
