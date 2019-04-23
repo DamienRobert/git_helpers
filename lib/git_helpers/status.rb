@@ -284,12 +284,16 @@ module GitHelpers
 			if stash
 				r[:stash]=self.stash&.lines&.length
 			end
-			r[:sequencer]=self.sequencer if sequencer
+			if sequencer
+				seq, seq_full=self.sequencer(:both) 
+				r[:sequencer]=seq
+				r[:full_sequencer]=seq_full
+			end
 			return r
 		end
 
 		#changed_submodule: do we show changed submodule apart?
-		def format_status(br='HEAD', status_infos=nil, changed_submodule: true, **opts)
+		def format_status(br='HEAD', status_infos=nil, changed_submodule: true, max_length: nil, **opts)
 			if status_infos.nil?
 				return "" unless git?
 				status_infos=self.status(br, **opts)
@@ -317,28 +321,52 @@ module GitHelpers
 			clean=true
 			clean=false if staged != 0 || allchanged !=0 || untracked !=0 || conflicts !=0 || !worktree? || opts[:files]==false
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
+			full_sequencer=status_infos[:full_sequencer]&.join(" ") || ""
 
 			# "#{detached ? ":" : ""} # the ':' prefix is done by name now
-			left= "#{branch}".color(:magenta,:bold) <<
+			left=
+			"#{branch}".color(:magenta,:bold) <<
 			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
 			(behind==0 ? "" : "↓"<<behind.to_s ) <<
-			(push_ahead==0 ? "" : "⇡"<<push_ahead.to_s ) <<
-			(push_behind==0 ? "" : "⇣"<<push_behind.to_s )
+			(push_ahead==0 ? "" : "⇡"<<push_ahead.to_s) <<
+			(push_behind==0 ? "" : "⇣"<<push_behind.to_s)
 
-			right= (staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
+			files=
+			(staged==0 ? "" : "●"+staged.to_s).color(:red)  <<
 			(conflicts==0 ? "" : "✖"+conflicts.to_s).color(:red) <<
 			(changed==0 ? "" : "✚"+changed.to_s).color(:blue)  <<
-			(subcommited==0 ? "" : ("✦"+subcommited.to_s).color(:blue) ) <<
-			(subchanged==0 ? "" : ("✧"+subchanged.to_s).color(:blue) ) <<
+			(subcommited==0 ? "" : ("✦"+subcommited.to_s).color(:blue)) <<
+			(subchanged==0 ? "" : ("✧"+subchanged.to_s).color(:blue)) <<
 			(untracked==0 ? "" : "…" +
 			 (opts[:untracked].to_s=="full" ? untracked.to_s : "")
 			).color(:blue) <<
 			(ignored==0 ? "" : "ꜟ" + #❗
 			 (opts[:ignored].to_s=="full" ? ignored.to_s : "")
 			).color(:blue) <<
-			(clean ? "✔".color(:green,:bold) : "" ) <<
-			(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
+			(clean ? "✔".color(:green,:bold) : "")
+
+			extra=
+			(full_sequencer.empty? ? "" : "#{full_sequencer}".color(:yellow) ) <<
 			(stash==0 ? "": " $#{stash}".color(:yellow))
+
+			if max_length
+				if left.size+files.size+extra.size > max_length
+					extra=
+					(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
+					(stash==0 ? "": " $#{stash}".color(:yellow))
+				end
+				if left.size+files.size+extra.size > max_length
+					extra=""
+				end
+				if left.size+files.size+extra.size > max_length
+					files=""
+				end
+			end
+			right=files
+			unless extra.empty?
+				right << " " unless right.empty?
+				right << extra 
+			end
 
 			r="(" << left <<
 				(right.empty? ? "" : "|" ) << right << ")"

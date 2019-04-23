@@ -45,6 +45,9 @@ optparse = OptionParser.new do |opt|
 	opt.on("--sm", "Recurse on each submodules") do |v|
 		opts[:submodules]=v
 	end
+	opt.on("--max-length=length", "Maximum status length", Integer) do |v|
+		opts[:max_length]=v
+	end
 	opt.on("--[no-]debug", "Debug git calls") do |v|
 		opts[:debug]=v
 	end
