@@ -8,6 +8,7 @@ optparse = OptionParser.new do |opt|
 	opt.banner= "#{File.basename($0)} [options] git_dirs"
 	opt.on("-p", "--[no-]prompt", "To be used in shell prompt", "This ensure that color ansi sequence are escaped so that they are not counted as text by the shell") do |v|
 		opts[:prompt]=v
+		opts[:max_length]=40 if v
 	end
 	opt.on("-s", "--[no-]status[=options]", "List file", "Print the output of git status additionally of what this program parse") do |v|
 		opts[:status]=v

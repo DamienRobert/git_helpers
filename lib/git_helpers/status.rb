@@ -320,8 +320,12 @@ module GitHelpers
 			stash=status_infos[:stash]||0
 			clean=true
 			clean=false if staged != 0 || allchanged !=0 || untracked !=0 || conflicts !=0 || !worktree? || opts[:files]==false
-			sequencer=status_infos[:sequencer]&.join(" ") || ""
-			full_sequencer=status_infos[:full_sequencer]&.join(" ") || ""
+			sequencer=status_infos[:sequencer] || []
+			full_sequencer=status_infos[:full_sequencer] || []
+			if stash != 0
+				sequencer << "$#{stash}"
+				full_sequencer << "$#{stash}"
+			end
 
 			# "#{detached ? ":" : ""} # the ':' prefix is done by name now
 			left=
@@ -345,20 +349,19 @@ module GitHelpers
 			).color(:blue) <<
 			(clean ? "✔".color(:green,:bold) : "")
 
-			extra=
-			(full_sequencer.empty? ? "" : "#{full_sequencer}".color(:yellow) ) <<
-			(stash==0 ? "": " $#{stash}".color(:yellow))
+			extra=full_sequencer.join(" ").color(:yellow)
 
+			length=lambda do
+				left.uncolor.size+files.uncolor.size+extra.uncolor.size
+			end
 			if max_length
-				if left.size+files.size+extra.size > max_length
-					extra=
-					(sequencer.empty? ? "" : " #{sequencer}".color(:yellow) ) <<
-					(stash==0 ? "": " $#{stash}".color(:yellow))
+				if length.call > max_length
+					extra=sequencer.join(" ").color(:yellow)
 				end
-				if left.size+files.size+extra.size > max_length
+				if length.call > max_length
 					extra=""
 				end
-				if left.size+files.size+extra.size > max_length
+				if length.call > max_length
 					files=""
 				end
 			end
