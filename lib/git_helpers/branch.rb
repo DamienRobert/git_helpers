@@ -130,6 +130,8 @@ module GitHelpers
 					l.call "git rev-parse --symbolic-full-name #{@branch.shellescape}"
 				when "symbolic"
 					l.call "git rev-parse --symbolic #{@branch.shellescape}"
+				when Proc
+					method.call(@branch)
 				else
 					l.call method unless method.nil? or method.empty?
 				end

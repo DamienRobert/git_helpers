@@ -21,8 +21,9 @@ module GitHelpers
 			query << 'refs/tags' if tags
 			r={}
 			format=%w(refname refname:short objecttype objectsize objectname upstream upstream:short upstream:track upstream:remotename upstream:remoteref push push:short push:track push:remotename push:remoteref HEAD symref)
-			#Note push:remoteref is buggy (always empty)
-			#and push:track is upstream:track
+			#Note push:remoteref is buggy (empty if no push refspec specified)
+			#and push:track is upstream:track (cf my patch to the git mailing
+			#list to correct that)
 			out=run_simple("git for-each-ref --format '#{format.map {|f| "%(#{f})"}.join(';')}' #{query.shelljoin}", chomp: :lines)
 			out.each do |l|
 				infos=l.split(';')

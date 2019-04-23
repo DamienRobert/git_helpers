@@ -19,6 +19,28 @@ module GitHelpers
 				end
 				u
 			end
+			rb_helper=lambda do |dir; name, onto, rbname, extra|
+				name=read_helper[gitdir+"#{dir}/head-name", ref: true]
+				onto=read_helper[gitdir+"#{dir}/onto", ref: true]
+				rbname=""
+				rbname << name if name
+				rbname << "->#{onto}" if onto
+				if dir == "rebase-merge"
+					cur=read_helper[gitdir+"#{dir}/msgnum"]
+					last=read_helper[gitdir+"#{dir}/end"]
+				elsif dir == "rebase-merge"
+					cur=read_helper[gitdir+"#{dir}/next"]
+					last=read_helper[gitdir+"#{dir}/last"]
+				end
+				extra=[]; extra << rbname unless rbname.empty?;
+				extra << "#{cur}/#{last}" if cur and last
+				if !extra.empty?
+					"(#{extra.join(":")})"
+				else
+					""
+				end
+			end
+
 			gitdir=self.gitdir
 			r=[]
 			if bare?
@@ -36,7 +58,7 @@ module GitHelpers
 			if (gitdir+"rebase-merge").directory?
 				state=
 				if (gitdir+"rebase-merge/interactive").file?
-					if (gitdir+"rebase-merge/rewritten").file?
+					if (gitdir+"rebase-merge/rewritten").exist?
 						"rb-im" #REBASE-im $ rebase -p -i
 					else
 						"rb-i" #REBASE-i
@@ -44,18 +66,11 @@ module GitHelpers
 				else
 					"rb-m" #REBASE-m $ rebase -p
 				end
-				name=read_helper[gitdir+"rebase-merge/head-name", ref: true]
-				cur=read_helper[gitdir+"rebase-merge/msgnum"]
-				last=read_helper[gitdir+"rebase-merge/end"]
-				extra=[]; extra << name if name;
-				extra << "#{cur}/#{last}" if cur and last
-				state << "(#{extra.join(":")})" if !extra.empty?
-				r << state
+				extra = rb_helper.call("rebase-merge")
+				r << "#{state}#{extra}"
 			end
 			if (gitdir+"rebase-apply").directory?
 				name=read_helper[gitdir+"rebase-apply/head-name", ref: true]
-				cur=read_helper[gitdir+"rebase-apply/next"]
-				last=read_helper[gitdir+"rebase-apply/last"]
 				state = if (gitdir+"rebase-apply/rebasing").file?
 					"rb" #RB
 				elsif (gitdir+"rebase-apply/applying").file?
@@ -63,10 +78,8 @@ module GitHelpers
 				else
 					"am/rb" #AM/REBASE (should not happen)
 				end
-				extra=[]; extra << name if name;
-				extra << "#{cur}/#{last}" if cur and last
-				state << "(#{extra.join(":")})" if !extra.empty?
-				r << state
+				extra = rb_helper.call("rebase-apply")
+				r << "#{state}#{extra}"
 			end
 			if (gitdir+"MERGE_HEAD").file?
 				r<<"mg" #MERGING
@@ -268,7 +281,7 @@ module GitHelpers
 			behind=status_infos.dig(:branch,:upstream_behind)||0
 			push_ahead=status_infos[:push_ahead]||0
 			push_behind=status_infos[:push_behind]||0
-			detached=status_infos.dig(:branch,:detached) || false
+			# detached=status_infos.dig(:branch,:detached) || false
 			allchanged=status_infos[:changed] ||0
 			if changed_submodule
 				changed=status_infos[:changed_nonsub] ||0
