@@ -35,12 +35,14 @@ module GitHelpers
 				end
 				extra=[]; extra << rbname unless rbname.empty?;
 				extra << "#{cur}/#{last}" if cur and last
+				extra
 			end
 			r=[]; r_extra=[]
 			append=lambda do |seq, extra=""|
 				r << seq
 				if extra_infos
-					if extra === Array
+					extra="" if extra.nil?
+					if extra.is_a?(Array)
 						extra=extra.join(":")
 					end
 					extra = extra.empty? ? "" : "(#{extra})"
