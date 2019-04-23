@@ -35,25 +35,25 @@ module GitHelpers
 				end
 				extra=[]; extra << rbname unless rbname.empty?;
 				extra << "#{cur}/#{last}" if cur and last
-				if !extra.empty?
-					"(#{extra.join(":")})"
-				else
-					""
-				end
 			end
 			r=[]; r_extra=[]
+			append=lambda do |seq, extra=""|
+				r << seq
+				if extra_infos
+					if extra === Array
+						extra=extra.join(":")
+					end
+					extra = extra.empty? ? "" : "(#{extra})"
+					r_extra << "#{seq}#{extra}"
+				end
+			end
 			rb_handler=lambda do |state, mode; extra|
 				if mode == :rbi
 					extra = rb_helper.call("rebase-merge") if extra_infos
 				elsif mode==:am
 					extra = rb_helper.call("rebase-apply") if extra_infos
 				end
-				r << "#{state}"
-				r_extra << "#{state}#{extra}"
-			end
-			append=lambda do |seq|
-				r << seq
-				r_extra << seq if extra_infos
+				append.call(state, extra)
 			end
 
 			gitdir=self.gitdir
@@ -69,6 +69,9 @@ module GitHelpers
 			end
 
 			return r unless gitdir
+			if (gitdir+"index.lock").file?
+				append.call "ci" #commit in progress
+			end
 			if (gitdir+"rebase-merge").directory?
 				state=
 				if (gitdir+"rebase-merge/interactive").file?
@@ -97,16 +100,24 @@ module GitHelpers
 				append.call "mg" #MERGING
 			end
 			if (gitdir+"CHERRY_PICK_HEAD").file?
-				append.call "ch" #CHERRY-PICKING
+				state= "ch" #CHERRY-PICKING
+				name=read_helper[gitdir+"CHERRY_PICK_HEAD", ref: true]
+				name=branch(name).name(highlight_detached: "") if name
+				append.call state, name
 			end
 			if (gitdir+"REVERT_HEAD").file?
-				append.call "rv" #REVERTING
+				state=rv #REVERTING
+				name=read_helper[gitdir+"REVERT_HEAD", ref: true]
+				name=branch(name).name(highlight_detached: "") if name
+				append.call state, name
 			end
 			if (gitdir+"sequencer").directory?
 				append.call "seq" #when we have a multiple commits cherry-pick or revert
 			end
 			if (gitdir+"BISECT_LOG").file?
-				append.call "bi" #BISECTING
+				state="bi" #BISECTING
+				name=read_helper[gitdir+"BISECT_START", ref: true]
+				append.call state, name
 			end
 
 			if extra_infos == :both
