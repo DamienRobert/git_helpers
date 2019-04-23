@@ -121,6 +121,8 @@ module GitHelpers
 			run_simple("git config #{args.shelljoin}", chomp: true)
 		end
 
+		# deprecated
+		# run head.name instead
 		def current_branch(always: true)
 			branchname= run_simple("git symbolic-ref -q --short HEAD", chomp: true)
 			branchname= run_simple("git rev-parse --short --verify HEAD", chomp: true) if always and branchname.empty?

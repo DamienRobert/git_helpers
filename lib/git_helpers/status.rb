@@ -86,7 +86,7 @@ module GitHelpers
 			r
 		end
 
-		def status(br='HEAD', ignored: nil, untracked: nil, branch: :full, files: true, sequencer: true, stash: true, detached_name: :detached_default, **_opts)
+		def status(br='HEAD', ignored: nil, untracked: nil, branch: :full, files: true, sequencer: true, stash: true, detached_name: :'branch-fb', **_opts)
 			l_branch={}
 			l_branch=self.branch(br).infos(detached_name: detached_name) if branch == :full
 			r={branch: l_branch}
@@ -285,8 +285,8 @@ module GitHelpers
 			clean=true
 			clean=false if staged != 0 || allchanged !=0 || untracked !=0 || conflicts !=0 || !worktree? || opts[:files]==false
 			sequencer=status_infos[:sequencer]&.join(" ") || ""
-			r="(" <<
-			"#{detached ? ":" : ""}#{branch}".color(:magenta,:bold) <<
+			r="(" << # "#{detached ? ":" : ""} # the ':' prefix is done by name now
+			"#{branch}".color(:magenta,:bold) <<
 			(ahead==0 ? "" : "↑"<<ahead.to_s ) <<
 			(behind==0 ? "" : "↓"<<behind.to_s ) <<
 			(push_ahead==0 ? "" : "⇡"<<push_ahead.to_s ) <<

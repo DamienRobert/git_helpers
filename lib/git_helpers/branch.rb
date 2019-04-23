@@ -51,7 +51,7 @@ module GitHelpers
 
 		def infos(*args, name: :default, detached_name: :detached_default)
 			@infos=infos!(*args) unless @infos
-			@infos.merge({name: self.name(method: name, detached_method: :detached_name)})
+			@infos.merge({name: self.name(method: name, detached_method: detached_name)})
 		end
 
 		def infos!(detached: true)
@@ -85,13 +85,17 @@ module GitHelpers
 		def name(method: :default, detached_method: :detached_default, always: true, shorten: true, highlight_detached: ':')
 			l=lambda { |ev| run_simple(ev, chomp: true, error: :quiet) }
 			method="name" if method == :default
-			method="branch-fb" if method == :detached_default
+			#method="branch-fb" if method == :detached_default
+			#method="short" if method == :detached_default
+			method="match" if method == :detached_default
 			describe=
 				case method.to_s
 				when "sha1"
 					l.call "git rev-parse #{@branch.shellescape}"
 				when "short"
 					l.call "git rev-parse --short #{@branch.shellescape}"
+				when "symbolic-ref"
+					l.call "git symbolic-ref -q --short #{@branch.shellescape}"
 				when "describe"
 					l.call "git describe #{@branch.shellescape}"
 				when "contains"
@@ -99,7 +103,7 @@ module GitHelpers
 				when "tags"
 					l.call "git describe --tags #{@branch.shellescape}"
 				when "match"
-					l.call "git describe --tags --exact-match #{@branch.shellescape}"
+					l.call "git describe --all --exact-match #{@branch.shellescape}"
 				when "topic"
 					l.call "git describe --all #{@branch.shellescape}"
 				when "branch"
