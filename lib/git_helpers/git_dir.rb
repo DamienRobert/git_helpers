@@ -12,10 +12,15 @@ module GitHelpers
 		include GitStatus
 		include GitSubmodules
 
-		attr_accessor :dir
+		attr_reader :dir, :reldir
 		attr_writer :infos
 		def initialize(dir=".")
+			self.dir=dir
+		end
+
+		def dir=(dir)
 			@dir=Pathname.new(dir.to_s).realpath
+			@reldir=Pathname.new(dir.to_s)
 		end
 
 		def to_s
@@ -23,7 +28,7 @@ module GitHelpers
 		end
 		#we could also use 'git -C #{@dir}' for each git invocation
 		def with_dir
-			Dir.chdir(@dir) { yield }
+			Dir.chdir(@dir) { yield self }
 		end
 
 		#reset all caches

@@ -42,7 +42,7 @@ module GitHelpers
 
 		def checkout
 			branch=@branch
-			branch.delete_prefix!('refs/heads/') #git checkout refs/heads/master check out in a detached head
+			branch&.delete_prefix!('refs/heads/') #git checkout refs/heads/master check out in a detached head
 			SH.sh! "git checkout #{branch}"
 		end
 		def checkout_detached
@@ -90,7 +90,7 @@ module GitHelpers
 			if method.nil? 
 				if !detached_methods.empty?
 					describe=self.name(method: detached_methods, detached_method: [], shorten: shorten, highlight_detached: highlight_detached, expand_head: expand_head)
-					describe="#{highlight_detached}#{describe}" unless describe.empty?
+					describe="#{highlight_detached}#{describe}" unless describe.nil? or describe.empty?
 					return describe
 				else
 					return nil
@@ -151,8 +151,8 @@ module GitHelpers
 				describe=self.name(method: methods, detached_method: detached_method, shorten: shorten, highlight_detached: highlight_detached, expand_head: expand_head)
 			end
 			if shorten
-				describe.delete_prefix!("refs/")
-				describe.delete_prefix!("heads/")
+				describe&.delete_prefix!("refs/")
+				describe&.delete_prefix!("heads/")
 			end
 			return describe
 		end
