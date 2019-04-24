@@ -2,6 +2,7 @@ require 'git_helpers/stats'
 require 'git_helpers/extra_helpers'
 require 'git_helpers/branch_infos'
 require 'git_helpers/status'
+require 'git_helpers/submodules'
 
 module GitHelpers
 	class GitDir
@@ -9,6 +10,7 @@ module GitHelpers
 		include GitExtraInfos
 		include GitBranchInfos
 		include GitStatus
+		include GitSubmodules
 
 		attr_accessor :dir
 		attr_writer :infos

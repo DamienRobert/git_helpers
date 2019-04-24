@@ -1,11 +1,9 @@
 require 'git_helpers/version'
-require 'simplecolor'
+require 'simplecolor/mixin'
 require 'shell_helpers'
 require 'dr/base/bool'
 require 'git_helpers/git_dir'
 require 'git_helpers/branch'
-
-SimpleColor.mix_in_string
 
 #git functions helper
 #small library wrapping git; use rugged for more interesting things
