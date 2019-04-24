@@ -367,14 +367,17 @@ module GitHelpers
 			length=lambda do
 				left.uncolor.size+files.uncolor.size+extra.uncolor.size
 			end
+			shortened=false
 			if max_length
 				if length.call > max_length
 					extra=sequencer.join(" ").color(:yellow)
 				end
 				if length.call > max_length
+					shortened=true unless extra.empty?
 					extra=""
 				end
 				if length.call > max_length
+					shortened=true unless files.empty?
 					files=""
 				end
 			end
@@ -385,7 +388,9 @@ module GitHelpers
 			end
 
 			r="(" << left <<
-				(right.empty? ? "" : "|" ) << right << ")"
+				(right.empty? ? "" : "|" ) << right <<
+				(shortened ? "⋯" : "") <<
+				")"
 			r
 		end
 	end
