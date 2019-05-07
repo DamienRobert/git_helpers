@@ -9,6 +9,16 @@ require 'git_helpers/branch'
 #small library wrapping git; use rugged for more interesting things
 module GitHelpers
 	DefaultLogOptions=["-M", "-C", "--no-color"].shelljoin
+	# we only call git to get status updates, we never modify the git dir
+	# so locks are not required, pass that information through the env
+	# variabole:
+	ENV['GIT_OPTIONAL_LOCKS']="0"
+	# another solution would be to invoke git via git --no-optional-locks
+	# each time. For now the env variable is easier to use.
+	# Note that the only optional lock is for git status currently.
+	# There is the following trade-off: If git-status will not take locks, it
+	# cannot update the index to save refresh information and reuse the next
+	# time. So do we want to use this?
 
 	extend self
 	add_instance_methods = lambda do |klass|
