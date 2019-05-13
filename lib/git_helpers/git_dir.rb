@@ -19,8 +19,8 @@ module GitHelpers
 		end
 
 		def dir=(dir)
-			@dir=Pathname.new(dir.to_s).realpath
 			@reldir=Pathname.new(dir.to_s)
+			@dir=begin @reldir.realpath rescue @reldir end
 		end
 
 		def to_s
