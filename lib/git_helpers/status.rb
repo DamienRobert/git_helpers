@@ -186,9 +186,15 @@ module GitHelpers
 
 					unless r[1]==:kept or r[1]==:unmerged
 						changed +=1
-						infos[:submodule] ? changed_sub +=1 : changed_nonsub +=1
-						subchanged +=1 if infos[:submodule] and (infos[:sub_modified]||infos[:sub_untracked])
-						subcommited +=1 if infos[:submodule] and infos[:sub_commited]
+						if infos[:submodule]
+							changed_sub +=1
+							subchanged +=1 if (infos[:sub_modified]||infos[:sub_untracked])
+							subcommited +=1 if infos[:sub_commited]
+							changed_nonsub +=1 unless (infos[:sub_modified]||infos[:sub_untracked]||infos[:sub_commited]) #for D or T
+
+						else
+							changed_nonsub +=1
+						end
 					end
 					conflicts+=1 if r[0]==:unmerged or r[1]==:unmerged
 
