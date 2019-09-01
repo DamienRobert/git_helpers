@@ -115,6 +115,7 @@ module GitHelpers
 			end
 			if (gitdir+"sequencer").directory?
 				append.call "seq" #when we have a multiple commits cherry-pick or revert
+				# TODO: read the 'todo' file to know if we are picking or reverting?
 			end
 			if (gitdir+"BISECT_LOG").file?
 				state="bi" #BISECTING
