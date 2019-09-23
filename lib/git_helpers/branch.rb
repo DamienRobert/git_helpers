@@ -171,10 +171,13 @@ module GitHelpers
 		def push_remote
 			infos["push:remotename"]
 		end
-		def upstream(short: true)
+		def upstream(short: true, warn: true)
 			# up=%x/git rev-parse --abbrev-ref #{@branch.shellescape}@{u}/.chomp!
 			br= short ? infos["upstream:short"] : infos["upstream"]
-			br=nil if br&.empty?
+			if br&.empty?
+				br=nil
+				warn "Warning: Branch #{self} has no upstream" if warn
+			end
 			new_branch(br)
 		end
 		def push(short: true)
