@@ -126,9 +126,13 @@ module GitHelpers
 				end
 				push=i["push:short"]
 				unless push.empty?
-					r << "  @{push}=#{push.color(:yellow)}"
-					r << "↑#{i[:push_ahead]}" unless i[:push_ahead]==0
-					r << "↓#{i[:push_behind]}" unless i[:push_behind]==0
+					if push==upstream
+						r << "  @{push}=@{u}"
+					else
+						r << "  @{push}=#{push.color(:yellow)}"
+						r << "↑#{i[:push_ahead]}" unless i[:push_ahead]==0
+						r << "↓#{i[:push_behind]}" unless i[:push_behind]==0
+					end
 				end
 				puts r
 				if cherry #todo: add push cherry?
