@@ -102,6 +102,7 @@ module GitHelpers
 			infos.each do |i|
 				name=i["refname:short"]
 				upstream=i["upstream:short"]
+				push=i["push:short"]
 				color=:magenta
 				if merged
 					color=:red #not merged
@@ -120,19 +121,16 @@ module GitHelpers
 					r << "↓#{behind}" unless behind==0
 				end
 				unless upstream.empty?
-					r << "  @{u}=#{upstream.color(:yellow)}"
+					r="  @{u}"
+					r << "=@{push}" if push==upstream
+					r << "=#{upstream.color(:yellow)}"
 					r << "↑#{i[:upstream_ahead]}" unless i[:upstream_ahead]==0
 					r << "↓#{i[:upstream_behind]}" unless i[:upstream_behind]==0
 				end
-				push=i["push:short"]
-				unless push.empty?
-					if push==upstream
-						r << "  @{push}=@{u}"
-					else
-						r << "  @{push}=#{push.color(:yellow)}"
-						r << "↑#{i[:push_ahead]}" unless i[:push_ahead]==0
-						r << "↓#{i[:push_behind]}" unless i[:push_behind]==0
-					end
+				unless push.empty? or push == upstream
+					r << "  @{push}=#{push.color(:yellow)}"
+					r << "↑#{i[:push_ahead]}" unless i[:push_ahead]==0
+					r << "↓#{i[:push_behind]}" unless i[:push_behind]==0
 				end
 				puts r
 				if cherry #todo: add push cherry?
