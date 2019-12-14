@@ -97,7 +97,7 @@ module GitHelpers
 			r
 		end
 
-		def format_branch_infos(infos, compare: nil, merged: nil, cherry: false)
+		def format_branch_infos(infos, compare: nil, merged: nil, cherry: false, log: false)
 			# warning, here we pass the info values, ie infos should be a list
 			infos.each do |i|
 				name=i["refname:short"]
@@ -121,7 +121,7 @@ module GitHelpers
 					r << "↓#{behind}" unless behind==0
 				end
 				unless upstream.empty?
-					r="  @{u}"
+					r <<  "  @{u}"
 					r << "=@{push}" if push==upstream
 					r << "=#{upstream.color(:yellow)}"
 					r << "↑#{i[:upstream_ahead]}" unless i[:upstream_ahead]==0
@@ -132,12 +132,24 @@ module GitHelpers
 					r << "↑#{i[:push_ahead]}" unless i[:push_ahead]==0
 					r << "↓#{i[:push_behind]}" unless i[:push_behind]==0
 				end
+				if log
+					log_options=case log
+					when Hash
+						log
+					when String
+						{pretty: log}
+					else
+						{}
+					end
+					log_options=log_options.map {|k,v| "--#{k}=#{v.shellescape}"}.join(' ')
+					r << "  "+run_simple("git -c color.ui=always log --date=human --oneline --no-walk #{log_options} #{name}")
+				end
 				puts r
 				if cherry #todo: add push cherry?
 					if upstream and i[:upstream_ahead] != 0 || i[:upstream_behind] != 0
 						ch=run_simple("git -c color.ui=always log --left-right --topo-order --oneline #{name}...#{upstream}")
 						ch.each_line do |l|
-							puts "  #{l}"
+							puts "   #{l}"
 						end
 					end
 				end
