@@ -31,7 +31,7 @@ module GitHelpers
 				infos=Hash[format.zip(infos)]
 
 				infos[:name]=infos["refname:short"]
-				infos[:head]=!infos["HEAD"].empty?
+				infos[:head]=!(infos["HEAD"].empty? or infos["HEAD"]==" ")
 
 				type=if full_name.start_with?("refs/heads/")
 							:local
@@ -135,14 +135,13 @@ module GitHelpers
 				if log
 					log_options=case log
 					when Hash
-						log
+						log.map {|k,v| "--#{k}=#{v.shellescape}"}.join(' ')
 					when String
-						{pretty: log}
+						log
 					else
-						{}
+						""
 					end
-					log_options=log_options.map {|k,v| "--#{k}=#{v.shellescape}"}.join(' ')
-					r << "  "+run_simple("git -c color.ui=always log --date=human --oneline --no-walk #{log_options} #{name}")
+					r << " → "+run_simple("git -c color.ui=always log --date=human --oneline --no-walk #{log_options} #{name}")
 				end
 				puts r
 				if cherry #todo: add push cherry?
