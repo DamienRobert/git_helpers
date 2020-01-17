@@ -30,14 +30,14 @@ module GitHelpers
 			@infos=nil
 		end
 
-		def run(*args, &b)
-			@gitdir.run(*args, &b)
+		def run(*args,**kw, &b)
+			@gitdir.run(*args,**kw, &b)
 		end
-		def run_simple(*args,&b)
-			@gitdir.run_simple(*args, &b)
+		def run_simple(*args,**kw,&b)
+			@gitdir.run_simple(*args,**kw, &b)
 		end
-		def run_success(*args,&b)
-			@gitdir.run_success(*args, &b)
+		def run_success(*args,**kw,&b)
+			@gitdir.run_success(*args,**kw, &b)
 		end
 
 		def checkout

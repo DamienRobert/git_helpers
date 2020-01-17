@@ -482,7 +482,7 @@ module GitHelpers
 
 	class GitFancyDiff < GitDiff
 
-		def initialize(*args,&b)
+		def initialize(*args,**kw,&b)
 			super
 			#when run inside a pager I get one more column so the line overflow
 			#I don't know why

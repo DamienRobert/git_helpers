@@ -23,8 +23,8 @@ module GitHelpers
 	extend self
 	add_instance_methods = lambda do |klass|
 		klass.instance_methods(false).each do |m|
-			define_method(m) do |*args,&b|
-				GitDir.new.public_send(m,*args,&b)
+			define_method(m) do |*args,**kws,&b|
+				GitDir.new.public_send(m,*args,**kws,&b)
 			end
 		end
 	end
