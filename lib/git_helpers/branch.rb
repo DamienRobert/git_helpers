@@ -86,8 +86,9 @@ module GitHelpers
 			l=lambda { |ev| run_simple(ev, chomp: true, error: :quiet) }
 			methods=[*method]
 			detached_methods=[*detached_method]
+			# we first test each method, then each detached_methods
 			method=methods.shift
-			if method.nil? 
+			if method.nil?
 				if !detached_methods.empty?
 					describe=self.name(method: detached_methods, detached_method: [], shorten: shorten, highlight_detached: highlight_detached, expand_head: expand_head)
 					describe="#{highlight_detached}#{describe}" unless describe.nil? or describe.empty?
@@ -137,6 +138,8 @@ module GitHelpers
 					d=d2 if d1.empty?
 					d
 				when "name"
+					# note: the newer options `git branch --show-current` seems to be
+					# the same as this one
 					l.call "git rev-parse --abbrev-ref #{@branch.shellescape}"
 				when "full_name"
 					l.call "git rev-parse --symbolic-full-name #{@branch.shellescape}"

@@ -158,6 +158,9 @@ module GitHelpers
 		def name_branch(branch='HEAD',**args)
 			self.branch(branch).full_name(**args)
 		end
+		def name(branch='HEAD',**args)
+			self.branch(branch).name(**args)
+		end
 
 		#return all local upstreams of branches, recursively
 		def recursive_upstream(*branches, local: true)

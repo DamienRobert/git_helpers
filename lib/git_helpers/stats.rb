@@ -41,7 +41,7 @@ module GitHelpers
 
 		# inspired by visionmedia//git-line-summary
 		def stats_lines(file)
-			#p file
+			out=""
 			with_dir do
 				out,_suc=SH.run_simple("git", "blame", "--line-porcelain", file, quiet: true)
 			end
