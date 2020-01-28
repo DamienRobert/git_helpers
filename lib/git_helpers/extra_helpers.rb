@@ -155,7 +155,7 @@ module GitHelpers
 				merges=trails(commit, **opts)
 				merges.delete(hash) #todo: only delete if we are the only tip
 				merges.delete(:disjoint)
-				system("git --no-pager -c color.ui=always log --pretty=summary #{log_opts} #{merges.keys.map {|mb| "^#{mb}"}.join(" ")} #{commit}")
+				system("git --no-pager -c color.ui=always log --pretty=suminfo #{log_opts} #{merges.keys.map {|mb| "^#{mb}"}.join(" ")} #{commit}")
 				puts
 			end
 		end
