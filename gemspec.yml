@@ -11,8 +11,5 @@ dependencies:
   drain: ~> 0.1
   simplecolor: ~> 0.2
 development_dependencies:
-  bundler: "~> 1.10"
   minitest: "~> 5.0"
-  rake: "~> 10"
-  rubygems-tasks: "~> 0.2"
-  yard: "~> 0.8"
+  rake: ">= 10.0"

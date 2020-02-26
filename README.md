@@ -3,9 +3,10 @@
 * [Homepage](https://github.com/DamienRobert/git_helpers#readme)
 * [Issues](https://github.com/DamienRobert/git_helpers/issues)
 * [Documentation](http://rubydoc.info/gems/git_helpers)
-* [Email](mailto:Damien.Olivier.Robert+gems at gmail.com)
+* [Email](mailto:Damien.Olivier.Robert+gems@gmail.com)
 
 [![Gem Version](https://img.shields.io/gem/v/git_helpers.svg)](https://rubygems.org/gems/git_helpers)
+[![Ruby test result](https://github.com/DamienRobert/git_helpers/workflows/Ruby/badge.svg)](https://github.com/DamienRobert/git_helpers/actions?query=workflow%3ARuby)
 [![Build Status](https://travis-ci.org/DamienRobert/git_helpers.svg?branch=master)](https://travis-ci.org/DamienRobert/git_helpers)
 
 ## Description
@@ -76,10 +77,12 @@ Here is my .gitconfig using diff-fancy.rb:
 
 ## Install
 
+    ~~~ sh
     $ gem install git_helpers
+    ~~~
 
 ## Copyright
 
 Copyright © 2016–2020 Damien Robert
 
-MIT License. See [LICENSE.txt](./LICENSE.txt) for details.
+MIT License. See [`LICENSE.txt`](LICENSE.txt) for details.
