@@ -7,9 +7,9 @@ email: Damien.Olivier.Robert+gems@gmail.com
 homepage: https://github.com/DamienRobert/git_helpers#readme
 
 dependencies:
-  shell_helpers: ~> 0.1
-  drain: ~> 0.1
-  simplecolor: ~> 0.2
+  shell_helpers: ~> 0.7
+  drain: ~> 0.6
+  simplecolor: ~> 0.4
 development_dependencies:
   minitest: "~> 5.0"
   rake: ">= 10.0"
