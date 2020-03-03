@@ -31,7 +31,7 @@ module GitHelpers
 				infos=Hash[format.zip(infos)]
 
 				infos[:name]=infos["refname:short"]
-				infos[:head]=!(infos["HEAD"].empty? or infos["HEAD"]==" ")
+				infos[:head]=!(infos["HEAD"]&.empty? or infos["HEAD"]==" ")
 
 				type=if full_name.start_with?("refs/heads/")
 							:local
@@ -56,10 +56,10 @@ module GitHelpers
 				infos[:push_ahead]=0
 				infos[:push_behind]=0
 				track=infos["upstream:track"]
-				track.match(/ahead (\d+)/) do |m|
+				track&.match(/ahead (\d+)/) do |m|
 					infos[:upstream_ahead]=m[1].to_i
 				end
-				track.match(/behind (\d+)/) do |m|
+				track&.match(/behind (\d+)/) do |m|
 					infos[:upstream_behind]=m[1].to_i
 				end
 
@@ -71,7 +71,7 @@ module GitHelpers
 				# ptrack.match(/behind (\d+)/) do |m|
 				# 	infos[:push_behind]=m[1].to_i
 				# end
-				unless infos["push"].empty?
+				unless infos["push"]&.empty?
 					ahead, behind=ahead_behind(infos["refname"], infos["push"])
 					infos[:push_ahead]=ahead
 					infos[:push_behind]=behind
