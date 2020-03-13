@@ -1,6 +1,8 @@
 module GitHelpers
-	
+  require 'dr/base/encoding'
+
 	module GitStats
+	  extend self
 		#Note: stats-authors give the same result, should be faster, and handle mailcap
 		#inspired by git-mainline//git-rank-contributors
 		def stats_diff(logopts=nil)
@@ -127,7 +129,7 @@ module GitHelpers
 		end
 
 		#inspired by visionmedia//git-infos
-		def infos
+		def stats_infos
 			with_dir do
 				puts "## Remote URLs:"
 				puts
@@ -152,7 +154,7 @@ module GitHelpers
 		end
 
 		#inspired by visionmedia//git-summary
-		def summary(logopts=nil)
+		def stats_summary(logopts=nil)
 			with_dir do
 				project=Pathname.new(%x/git rev-parse --show-toplevel/).basename
 				authors=stats_authors(logopts)
