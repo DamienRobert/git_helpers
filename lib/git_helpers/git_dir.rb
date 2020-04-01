@@ -12,6 +12,16 @@ module GitHelpers
 		include GitStatus
 		include GitSubmodules
 
+    # clear GIT_DIR=... type env so autodetection works
+		def self.clear_env
+			old_env=ENV.to_h
+			%x/git rev-parse --local-env-vars/.each_line do |l|
+			  ENV.delete(l.chomp)
+			end
+			yield
+			ENV.update(old_env)
+		end
+
 		attr_reader :dir, :reldir
 		attr_writer :infos
 		def initialize(dir=".")

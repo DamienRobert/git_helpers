@@ -19,10 +19,12 @@ module GitHelpers
 						# 	rec=GitDir.new.foreach(commited: commited, modified: modified, untracked: untracked, recursive: true, &b)
 						# 	r+=rec
 						# end
-						GitDir.new(k).with_dir do |g|
-							rec=g.foreach(commited: commited, modified: modified, untracked: untracked, recursive: true, &b)
-							r+=rec.map {|sub| g.reldir+sub}
-						end
+						GitDir.clear_env do
+						  GitDir.new(k).with_dir do |g|
+							  rec=g.foreach(commited: commited, modified: modified, untracked: untracked, recursive: true, &b)
+							  r+=rec.map {|sub| g.reldir+sub}
+						  end
+					  end
 					end
 				end
 			end
