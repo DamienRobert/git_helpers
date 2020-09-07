@@ -28,6 +28,7 @@ module GitHelpers
 			end
 		end
 	end
+	# add the instance methods from each helper to GitHelpers
 	GitDir.ancestors.each do |mod|
 		add_instance_methods.call(mod) if mod.to_s =~ /^GitHelpers::/
 	end
